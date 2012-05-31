@@ -40,6 +40,7 @@ kickstart_file=""
 kickstart_listen_host="192.168.1.100"
 kickstart_listen_port="8585"
 
+postinstall="yes"
 postinstall_environment_file=""
 postinstall_configure_root=""
 postintstall_configure_files=""
@@ -82,10 +83,53 @@ if [ -n "$vm_properties_file" ]; then
     if [ ! -f $vm_properties_file ]; then
         echo "properties file doesn't exist - $vm_properties_file"
         exit 1
-    else
-        echo "loading properties file: $vm_properties_file"
-        . $vm_properties_file
     fi
+fi
+
+#------------------------------------------------------------------------------
+# Support for adding property values as command line args (requires Python)
+#
+# The somersaults here are to deal with spaces in the passed in values, though
+# the spaces must still be backslash-escaped, eg.
+#
+#    $ vboxen testbox0 archlinux auto postinstall=no vm_option="has\ spaces"
+#
+#------------------------------------------------------------------------------
+shift
+shift
+shift
+args="$@"
+
+command -v python >/dev/null 2>&1
+
+if [ $? -eq 0 ] && [ -n "$args" ]; then
+# have python and more than 3 args
+splitargs=$(cat <<EOF | python -
+import shlex
+for s in shlex.split('$args'):
+    key, delim, val = s.partition('=')
+    if delim:
+        key=key.strip()
+        val=val.strip()
+        s = '%s="%s"' % (key, val)
+        print('{{'+s+'}}')
+EOF
+)
+
+if [ -n "$splitargs" ]; then
+    if [ -z "$vm_properties_file" ]; then
+        vm_properties_file="vm.properties"
+        touch $vm_properties_file
+    fi
+    echo "" >> $vm_properties_file
+    echo $splitargs | sed "s/{{\([^}]*\)}}/\1\n/g" | sed "s/^\s*//g" >> $vm_properties_file
+    echo "" >> $vm_properties_file
+fi
+#------------------------------------------------------------------------------
+
+if [ -n "$vm_properties_file" ]; then
+    echo "loading properties file: $vm_properties_file"
+    . $vm_properties_file
 fi
 
 if [ -n "`echo $vm_source_iso_file | grep '^http[s]\?\|^ftp://'`" ];then

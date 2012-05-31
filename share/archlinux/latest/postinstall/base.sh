@@ -1,0 +1,37 @@
+
+# make sure network is up and a nameserver is available
+dhcpcd eth0
+
+# root password
+passwd<<EOF
+${STARMAN_ROOT_PASSWORD:=vboxen}
+${STARMAN_ROOT_PASSWORD}
+EOF
+
+# sudo setup
+# note: do not use tabs here, it autocompletes and borks the sudoers file
+cat <<EOF > /etc/sudoers
+root      ALL=(ALL)    ALL
+%wheel    ALL=(ALL)    NOPASSWD: ALL
+EOF
+
+# make sure ssh is allowed
+echo "sshd: ALL" > /etc/hosts.allow
+
+# and everything else isn't
+echo "ALL:  ALL" > /etc/hosts.deny
+
+# make sure sshd starts
+sed -i 's:^DAEMONS\(.*\))$:DAEMONS\1 sshd):' /etc/rc.conf
+
+# set a package mirror
+echo "Server = ${STARMAN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
+
+# update pacman
+pacman -Syy
+pacman -S --noconfirm pacman
+
+# upgrade pacman db
+pacman-db-upgrade
+pacman -Syy
+

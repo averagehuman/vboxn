@@ -103,6 +103,7 @@ args="$@"
 command -v python >/dev/null 2>&1
 
 if [ $? -eq 0 ] && [ -n "$args" ]; then
+
 # have python and more than 3 args
 splitargs=$(cat <<EOF | python -
 import shlex
@@ -116,14 +117,15 @@ for s in shlex.split('$args'):
 EOF
 )
 
-if [ -n "$splitargs" ]; then
-    if [ -z "$vm_properties_file" ]; then
-        vm_properties_file="vm.properties"
-        touch $vm_properties_file
+    if [ -n "$splitargs" ]; then
+        if [ -z "$vm_properties_file" ]; then
+            vm_properties_file="vm.properties"
+            touch $vm_properties_file
+        fi
+        echo "" >> $vm_properties_file
+        echo $splitargs | sed "s/{{\([^}]*\)}}/\1\n/g" | sed "s/^\s*//g" >> $vm_properties_file
+        echo "" >> $vm_properties_file
     fi
-    echo "" >> $vm_properties_file
-    echo $splitargs | sed "s/{{\([^}]*\)}}/\1\n/g" | sed "s/^\s*//g" >> $vm_properties_file
-    echo "" >> $vm_properties_file
 fi
 #------------------------------------------------------------------------------
 

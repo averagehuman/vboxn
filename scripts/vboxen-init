@@ -2,19 +2,23 @@
 
 script="`basename $0`"
 usage () {
-    echo "$script <vm_name> <os_type> <auto|iso_source_file> [properties_file]"
+    echo "$script <vm_name> <os_type> <auto|iso_source_file> [properties_file] [vm_option=..., vm_option=...]"
     echo ""
     echo "Examples:"
     echo ""
     echo "    $script testbox0 archlinux auto"
     echo "    $script testbox0 archlinux archlinux-2011.08.19-core-i686.iso"
     echo "    $script testbox0 archlinux iso/archlinux-2011.08.19-core-i686.iso conf/vm.properties"
+    echo "    $script testbox0 archlinux auto kickstart=no"
+    echo "    $script testbox0 archlinux auto postinstall=no"
+    echo "    $script testbox0 archlinux auto vm_basefolder=/srv/vbox"
     echo ""
     echo "Notes:"
     echo ""
     echo "    - a properties file can optionally be used to supply overrides to the"
     echo "      default VM config options, it is sourced by $script and should be a"
     echo "      valid shell script."
+    echo "    - properties can additionally be defined as command line arguments"
     echo ""
 }
 
@@ -22,7 +26,7 @@ vm="$1"
 vm_ostype="$2"
 vm_source_iso_file="$3"
 vm_properties_file="$4"
-vm_basefolder="${HOME:-.}/.vbox"
+vm_basefolder="${HOME:-.}/.vboxen"
 vm_force_delete_existing_machine="no"
 vm_base_memory="256"
 vm_video_memory="16"
@@ -73,16 +77,23 @@ fi
 if [ -n "$vm_properties_file" ]; then
     if [ -z "`echo $vm_properties_file | sed -n '/[^?]\+=.*/p'`" ]; then
         # it's not a key=value param
+        vm_local_properties_file="vm.properties"
+        if [ -f "$vm_local_properties_file" ]; then
+            rm $vm_local_properties_file
+        fi
         if [ -n "`echo $vm_properties_file | grep '^http[s]\?\|^ftp://'`" ];then
             # a url - download to a file called vm.properties
             if [ -f "vm.properties" ]; then
                 # sorry
                 rm -rf vm.properties
             fi
-            wget --no-check-certificate $vm_properties_file -O vm.properties
-            vm_properties_file="vm.properties"
-        fi
-        if [ ! -f $vm_properties_file ]; then
+            wget --no-check-certificate $vm_properties_file -O $vm_local_properties_file
+            if [ $? -ne 0 ]; then
+                echo "Error: couldn't download file $vm_properties_file"
+                exit 1
+            fi
+            vm_properties_file="$vm_local_properties_file"
+        elif [ ! -f $vm_properties_file ]; then
             echo "properties file doesn't exist - $vm_properties_file"
             exit 1
         fi
@@ -98,6 +109,7 @@ if [ -n "$vm_properties_file" ]; then
                 echo "vm_basefolder does not exist - $basefolder"
                 exit 1
             else
+                # strip trailing slash
                 vm_basefolder="`echo $basefolder | sed 's/\/$//'`"
             fi
         fi
@@ -165,8 +177,8 @@ EOF
 fi
 #------------------------------------------------------------------------------
 
+# source the properties file
 if [ -n "$vm_properties_file" ]; then
-    echo "loading properties file: $vm_properties_file"
     . $vm_properties_file
 fi
 
@@ -176,6 +188,10 @@ if [ -n "`echo $vm_source_iso_file | grep '^http[s]\?\|^ftp://'`" ];then
     vm_source_iso_target="${vm_basefolder}/${vm_ostype_label}-install-image-`echo $vm_source_iso_file | md5sum | cut -b 1-16`.iso"
     if [ ! -f "$vm_source_iso_target" ]; then
         wget --no-check-certificate $vm_source_iso_file -O "$vm_source_iso_target"
+        if [ $? -ne 0 ]; then
+            echo "Error: couldn't download file $vm_source_iso_target"
+            exit 1
+        fi
     fi
     vm_source_iso_file="$vm_source_iso_target"
 fi
@@ -370,11 +386,12 @@ if [ "$postinstall" = "yes" ]; then
             # copy to local file
             cp $postinstall_environment_file $postinstall_file_local
         fi
-    else
+    fi
+    if [ ! -f $postinstall_file_local ]; then
         touch $postinstall_file_local
     fi
     # append any "all uppercase" variables from the local properties file
-    if [ -n "$vm_properties_file" ]; then
+    if [ -f "$vm_properties_file" ]; then
         echo "" >> $postinstall_file_local
         for line in `sed -n '/^[_A-Z]\+=.*/p' $vm_properties_file`; do
             echo $line >> $postinstall_file_local
@@ -384,10 +401,18 @@ if [ "$postinstall" = "yes" ]; then
     # append any postinstall configure files
     for f in $postinstall_configure_files; do
         if [ -n "$postinstall_configure_root" ]; then
+            # strip trailing slash and join
+            postinstall_configure_root="`echo $postinstall_configure_root | sed 's/\/$//'`"
             f="$postinstall_configure_root/$f"
         fi
         if [ -n "`echo $f | grep '^http[s]\?\|^ftp://'`" ];then
             wget --no-check-certificate $f -O - >> $postinstall_file_local
+            if [ $? -ne 0 ]; then
+                echo "Error: couldn't download file $f"
+                exit 1
+            fi
+        else
+            cat $f >> $postinstall_file_local
         fi
     done
     # background a one shot web server whose job it is to serve the
@@ -508,6 +533,7 @@ detach_iso_image () {
     # boot from disk
     VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
 
+    VBoxManage storageattach "$vm" --storagectl "IDE Controller" --type dvddrive --port 0 --device 0 --medium none
     #deregister the dvd image
     VBoxManage closemedium dvd $vm_source_iso_file
 }
@@ -520,18 +546,20 @@ case "$vm_ostype" in
         # <enter>  (Select first option - boot from disc)
         echo "Beginning ArchLinux install."
         enter
-        pause 50
-
-        # bring up network
-        echo "dhcpcd eth0"
-        putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
-        enter
-        pause 20
+        pause 30
 
         if [ "$kickstart" = "yes" ]; then
+
+            # bring up network
+            echo "dhcpcd eth0"
+            putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
+            enter
+            pause 20
+
             # fetch kickstart script
-            echo "wget http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
+            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
             putscancode $kw $kg $ke $kt && space
+            putscancode $kminus $kt && space && putscancode $k1
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
             putchars "$kickstart_listen_host:$kickstart_listen_port" && space
             putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
@@ -545,34 +573,42 @@ case "$vm_ostype" in
             putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
             enter
             pause 120
+
+            # shutdown
+            echo "stopping vm"
+            putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
+            putscancode $kminus $kh && space && putscancode $kn $ko $kw
+            enter
+            pause 30
+
+            # ensure boot from disk
+            echo "detaching dvd medium"
+            detach_iso_image 
+
+            # startvm
+            echo "restarting VM $vm"
+            VBoxManage startvm "$vm"
+            pause 20
+
+            # login
+            echo "login as root"
+            putscancode $kr $ko $ko $kt && enter
+            enter
+            pause 10
         fi
 
-        # shutdown
-        echo "shutdown -h now"
-        putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
-        putscancode $kminus $kh && space && putscancode $kn $ko $kw
-        enter
-        pause 30
-
-        # ensure boot from disk
-        echo "detaching dvd medium"
-        detach_iso_image 
-
-        # startvm
-        echo "restarting VM $vm"
-        VBoxManage startvm "$vm"
-        pause 10
-
-        # login
-        echo "login as root"
-        putscancode $kr $ko $ko $kt && enter
-        enter
-        pause 10
-
         if [ "$postinstall" = "yes" ]; then
+
+            # bring up network
+            echo "dhcpcd eth0"
+            putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
+            enter
+            pause 20
+
             # fetch postinstall script
-            echo "wget http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
+            echo "wget -t 1 http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
             putscancode $kw $kg $ke $kt && space
+            putscancode $kminus $kt && space && putscancode $k1
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
             putchars "$postinstall_listen_host:$postinstall_listen_port" && space
             putscancode $kminus $kO && space

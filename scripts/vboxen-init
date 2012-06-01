@@ -4,21 +4,36 @@ script="`basename $0`"
 usage () {
     echo "$script <vm_name> <os_type> <auto|iso_source_file> [properties_file] [vm_option=..., vm_option=...]"
     echo ""
+    echo "Description:"
+    echo ""
+    echo "    Automate the creation of VirtualBox machine instances."
+    echo ""
     echo "Examples:"
     echo ""
     echo "    $script testbox0 archlinux auto"
     echo "    $script testbox0 archlinux archlinux-2011.08.19-core-i686.iso"
     echo "    $script testbox0 archlinux iso/archlinux-2011.08.19-core-i686.iso conf/vm.properties"
     echo "    $script testbox0 archlinux auto kickstart=no"
+    echo "    $script testbox0 archlinux auto kickstart_file=bootstrap.sh"
     echo "    $script testbox0 archlinux auto postinstall=no"
     echo "    $script testbox0 archlinux auto vm_basefolder=/srv/vbox"
     echo ""
     echo "Notes:"
     echo ""
-    echo "    - a properties file can optionally be used to supply overrides to the"
+    echo "    - Specifying 'auto' for the iso source will download the latest generic"
+    echo "      32-bit installation image for the OS"
+    echo "    - A properties file can optionally be used to supply overrides to the"
     echo "      default VM config options, it is sourced by $script and should be a"
     echo "      valid shell script."
-    echo "    - properties can additionally be defined as command line arguments"
+    echo "    - Properties can additionally be defined as command line"
+    echo "      arguments. If both a properties file and command line properties"
+    echo "      are given, then those specified on the command line will take"
+    echo "      preference."
+    echo "    - If 'kickstart=yes' (the default) and 'kickstart_file' is"
+    echo "      unspecified, then a generic kickstart file will be downloaded"
+    echo "      from this project's github repository and run on the new virtual"
+    echo "      machine. Similarly for 'postinstall=yes' and"
+    echo "      'postinstall_configure_files'."
     echo ""
 }
 
@@ -51,6 +66,8 @@ postintstall_configure_files=""
 postinstall_listen_host="192.168.1.100"
 postinstall_listen_port="8586"
 
+ts=`date +%Y%m%d%H%M%S`
+
 if [ ! "$vm" ]; then
     usage
     exit 1
@@ -75,24 +92,27 @@ if [ "$vm_source_iso_file" = "auto" ]; then
 fi
 
 if [ -n "$vm_properties_file" ]; then
-    if [ -z "`echo $vm_properties_file | sed -n '/[^?]\+=.*/p'`" ]; then
-        # it's not a key=value param
-        vm_local_properties_file="vm.properties"
-        if [ -f "$vm_local_properties_file" ]; then
-            rm $vm_local_properties_file
+    # the properties file is an optional parameter, we distinguish it from a
+    # vm_option=... parameter by grepping for an "equals" preceded by one or
+    # more characters which are not question marks or forward slashes (which
+    # would indicate a filepath or url).
+    if [ -z "`echo $vm_properties_file | sed -n '/^[^?\/]\+=.*/p'`" ]; then
+        vm_temp_properties_file="/tmp/${script}.vm.properties.${ts}"
+        if [ -f "$vm_temp_properties_file" ]; then
+            rm $vm_temp_properties_file
         fi
         if [ -n "`echo $vm_properties_file | grep '^http[s]\?\|^ftp://'`" ];then
             # a url - download to a file called vm.properties
-            if [ -f "vm.properties" ]; then
+            if [ -f "$vm_temp_properties_file" ]; then
                 # sorry
-                rm -rf vm.properties
+                rm -rf $vm_temp_properties_file
             fi
-            wget --no-check-certificate $vm_properties_file -O $vm_local_properties_file
+            wget --no-check-certificate $vm_properties_file -O $vm_temp_properties_file
             if [ $? -ne 0 ]; then
                 echo "Error: couldn't download file $vm_properties_file"
                 exit 1
             fi
-            vm_properties_file="$vm_local_properties_file"
+            vm_properties_file="$vm_temp_properties_file"
         elif [ ! -f $vm_properties_file ]; then
             echo "properties file doesn't exist - $vm_properties_file"
             exit 1
@@ -101,7 +121,7 @@ if [ -n "$vm_properties_file" ]; then
         # the fourth command line arg was a key=value, therefore no explicit
         # properties file was given, therfore we are free to create one and
         # don't need to worry about anything defined in this block being
-        # overridden later
+        # overridden later (in particular the vm_basefolder).
         args="$@"
         basefolder=`echo "$@" | sed 's/^.*vm_basefolder=\([^ ]\+\).*/\1/'`
         if [ "$basefolder" != "$args" ]; then
@@ -122,12 +142,13 @@ if [ -n "$vm_properties_file" ]; then
             fi
         fi
         vm_properties_file="${vm_root}/vm.properties"
-        if [ ! -e $vm_properties_file ]; then
-            touch $vm_properties_file
-            if [ $? -ne 0 ]; then
-                echo "ERROR: couldn't create file $vm_properties_file"
-                exit 1
-            fi
+        if [ -e $vm_properties_file ]; then
+            rm $vm_properties_file
+        fi
+        touch $vm_properties_file
+        if [ $? -ne 0 ]; then
+            echo "ERROR: couldn't create file $vm_properties_file"
+            exit 1
         fi
     fi
 fi
@@ -182,9 +203,10 @@ if [ -n "$vm_properties_file" ]; then
     . $vm_properties_file
 fi
 
+# download the iso if remote
 if [ -n "`echo $vm_source_iso_file | grep '^http[s]\?\|^ftp://'`" ];then
     # a url - download if it hasn't already been downloaded
-    # downloads are tagged with a (truncated) md5 sum of the url
+    # downloads are tagged with a truncated md5 sum of the url
     vm_source_iso_target="${vm_basefolder}/${vm_ostype_label}-install-image-`echo $vm_source_iso_file | md5sum | cut -b 1-16`.iso"
     if [ ! -f "$vm_source_iso_target" ]; then
         wget --no-check-certificate $vm_source_iso_file -O "$vm_source_iso_target"
@@ -271,6 +293,14 @@ if [ ! -d $vm_root ]; then
         exit 1
     fi
 fi
+if [ -f "$vm_properties_file" ]; then
+    cp $vm_properties_file $vm_root
+fi
+if [ -n "$vm_temp_properties_file" ]; then
+    # it was given as a url and downloaded to a temp location
+    rm $vm_temp_properties_file
+fi
+
 
 ###############################################################################
 #
@@ -292,7 +322,7 @@ fi
 
 if [ "$kickstart" = "yes" ] && [ -z "$kickstart_file" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
-        kickstart_file="https://rrraw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
+        kickstart_file="https://raw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
     fi
 fi
 # Create VM
@@ -350,7 +380,6 @@ VBoxManage startvm "$vm"
 #
 ###############################################################################
 
-ts=`date +%Y%m%d%H%M%S`
 kickstart_file_local=""
 postinstall_file_local=""
 if [ "$kickstart" = "yes" ]; then
@@ -368,10 +397,10 @@ if [ "$kickstart" = "yes" ]; then
     fi
     # background a one shot web server whose job it is to serve the kickstart
     # file to the guest
-    echo "Launch kickstart listener."
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_local; } | nc -l $kickstart_listen_host $kickstart_listen_port &
+    echo "Launched kickstart listener."
 fi
-if [ "$postinstall" = "yes" ]; then
+if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
     postinstall_file_local="${vm_root}/vboxen-$vm_ostype_label-$vm-postinstall-$ts"
     # write out environment variables to local file
     if [ -n "$postinstall_environment_file" ]; then
@@ -417,8 +446,8 @@ if [ "$postinstall" = "yes" ]; then
     done
     # background a one shot web server whose job it is to serve the
     # postinstall file to the guest
-    echo "Launch postinstall listener."
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_local; } | nc -l $postinstall_listen_host $postinstall_listen_port &
+    echo "Launched postinstall listener."
 fi
 
 k0='0b 8b';k1='02 82';k2='03 83';k3='04 84';k4='05 85';
@@ -546,20 +575,20 @@ case "$vm_ostype" in
         # <enter>  (Select first option - boot from disc)
         echo "Beginning ArchLinux install."
         enter
-        pause 30
+        pause 40
 
-        if [ "$kickstart" = "yes" ]; then
+        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_local" ]; then
 
             # bring up network
             echo "dhcpcd eth0"
             putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
             enter
-            pause 20
+            pause 30
 
             # fetch kickstart script
             echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
             putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1
+            putscancode $kminus $kt && space && putscancode $k1 && space
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
             putchars "$kickstart_listen_host:$kickstart_listen_port" && space
             putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
@@ -597,18 +626,18 @@ case "$vm_ostype" in
             pause 10
         fi
 
-        if [ "$postinstall" = "yes" ]; then
+        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_local" ]; then
 
             # bring up network
             echo "dhcpcd eth0"
             putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
             enter
-            pause 20
+            pause 30
 
             # fetch postinstall script
             echo "wget -t 1 http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
             putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1
+            putscancode $kminus $kt && space && putscancode $k1 && space
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
             putchars "$postinstall_listen_host:$postinstall_listen_port" && space
             putscancode $kminus $kO && space

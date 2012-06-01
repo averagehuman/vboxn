@@ -58,6 +58,7 @@ kickstart="yes"
 kickstart_file=""
 kickstart_listen_host="192.168.1.100"
 kickstart_listen_port="8585"
+kickstart_wait=600
 
 postinstall="yes"
 postinstall_environment_file=""
@@ -65,6 +66,7 @@ postinstall_configure_root=""
 postintstall_configure_files=""
 postinstall_listen_host="192.168.1.100"
 postinstall_listen_port="8586"
+postinstall_wait=600
 
 ts=`date +%Y%m%d%H%M%S`
 
@@ -601,7 +603,7 @@ case "$vm_ostype" in
             putscancode $ka $ku $kt $ko $km $ka $kt $ki $kc && space
             putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
             enter
-            pause 120
+            pause ${kickstart_wait:-600}
 
             # shutdown
             echo "stopping vm"
@@ -650,7 +652,7 @@ case "$vm_ostype" in
             putscancode $ks $kh && space
             putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
             enter
-            pause 120
+            pause ${postinstall_wait:-600}
         fi
 
         # shutdown

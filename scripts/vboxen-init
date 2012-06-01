@@ -91,8 +91,9 @@ if [ -n "$vm_properties_file" ]; then
         # properties file was given, therfore we are free to create one and
         # don't need to worry about anything defined in this block being
         # overridden later
-        basefolder="`echo '$@' | sed 's/^.*vm_basefolder=\([^ ]\+\).*/\1/'`"
-        if [ -n "basefolder" ]; then
+        args="$@"
+        basefolder=`echo "$@" | sed 's/^.*vm_basefolder=\([^ ]\+\).*/\1/'`
+        if [ "$basefolder" != "$args" ]; then
             if [ ! -d $basefolder ]; then
                 echo "vm_basefolder does not exist - $basefolder"
                 exit 1
@@ -337,7 +338,7 @@ ts=`date +%Y%m%d%H%M%S`
 kickstart_file_local=""
 postinstall_file_local=""
 if [ "$kickstart" = "yes" ]; then
-    kickstart_file_local="vboxen-$vm_ostype_label-$vm-kickstart-$ts"
+    kickstart_file_local="${vm_root}/vboxen-$vm_ostype_label-$vm-kickstart-$ts"
     if [ -n "`echo $kickstart_file | grep '^http[s]\?\|^ftp://'`" ];then
         # it's a url
         wget --no-check-certificate $kickstart_file -O $kickstart_file_local
@@ -355,7 +356,7 @@ if [ "$kickstart" = "yes" ]; then
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_local; } | nc -l $kickstart_listen_host $kickstart_listen_port &
 fi
 if [ "$postinstall" = "yes" ]; then
-    postinstall_file_local="vboxen-$vm_ostype_label-$vm-postinstall-$ts"
+    postinstall_file_local="${vm_root}/vboxen-$vm_ostype_label-$vm-postinstall-$ts"
     # write out environment variables to local file
     if [ -n "$postinstall_environment_file" ]; then
         if [ -n "`echo $postinstall_environment_file | grep '^http[s]\?\|^ftp://'`" ];then
@@ -394,9 +395,6 @@ if [ "$postinstall" = "yes" ]; then
     echo "Launch postinstall listener."
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_local; } | nc -l $postinstall_listen_host $postinstall_listen_port &
 fi
-
-echo "Configuring. Please wait..."
-sleep 30
 
 k0='0b 8b';k1='02 82';k2='03 83';k3='04 84';k4='05 85';
 k5='06 86';k6='07 87';k7='08 88';k8='09 89';k9='0a 8a';
@@ -514,6 +512,9 @@ detach_iso_image () {
     VBoxManage closemedium dvd $vm_source_iso_file
 }
 
+echo "Configuring. Please wait..."
+pause 30
+
 case "$vm_ostype" in
     ArchLinux*)
         # <enter>  (Select first option - boot from disc)
@@ -527,22 +528,24 @@ case "$vm_ostype" in
         enter
         pause 20
 
-        # fetch kickstart script
-        echo "wget http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
-        putscancode $kw $kg $ke $kt && space
-        putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-        putchars "$kickstart_listen_host:$kickstart_listen_port" && space
-        putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
-        enter
-        pause 10
+        if [ "$kickstart" = "yes" ]; then
+            # fetch kickstart script
+            echo "wget http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
+            putscancode $kw $kg $ke $kt && space
+            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
+            putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
+            enter
+            pause 10
 
-        # run kickstart script
-        echo "aif -p automatic -c aif.cfg"
-        putscancode $ka $ki $kf && space && putscancode $kminus $kp && space
-        putscancode $ka $ku $kt $ko $km $ka $kt $ki $kc && space
-        putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
-        enter
-        pause 120
+            # run kickstart script
+            echo "aif -p automatic -c aif.cfg"
+            putscancode $ka $ki $kf && space && putscancode $kminus $kp && space
+            putscancode $ka $ku $kt $ko $km $ka $kt $ki $kc && space
+            putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
+            enter
+            pause 120
+        fi
 
         # shutdown
         echo "shutdown -h now"
@@ -566,29 +569,31 @@ case "$vm_ostype" in
         enter
         pause 10
 
-        # fetch postinstall script
-        echo "wget http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
-        putscancode $kw $kg $ke $kt && space
-        putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-        putchars "$postinstall_listen_host:$postinstall_listen_port" && space
-        putscancode $kminus $kO && space
-        putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-        enter
-        pause 10
+        if [ "$postinstall" = "yes" ]; then
+            # fetch postinstall script
+            echo "wget http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
+            putscancode $kw $kg $ke $kt && space
+            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+            putchars "$postinstall_listen_host:$postinstall_listen_port" && space
+            putscancode $kminus $kO && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
+            pause 10
 
-        # run postinstall script
-        echo "sh postinstall.sh"
-        putscancode $ks $kh && space
-        putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-        enter
-        pause 120
+            # run postinstall script
+            echo "sh postinstall.sh"
+            putscancode $ks $kh && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
+            pause 120
+        fi
 
         # shutdown
-        echo "shutdown -h now"
-        putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
-        putscancode $kminus $kh && space && putscancode $kn $ko $kw
-        enter
-        pause 20
+        #echo "shutdown -h now"
+        #putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
+        #putscancode $kminus $kh && space && putscancode $kn $ko $kw
+        #enter
+        #pause 20
 
     ;;
 esac

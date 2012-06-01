@@ -28,12 +28,14 @@ usage () {
     echo "    - Properties can additionally be defined as command line"
     echo "      arguments. If both a properties file and command line properties"
     echo "      are given, then those specified on the command line will take"
-    echo "      preference."
+    echo "      precedence."
     echo "    - If 'kickstart=yes' (the default) and 'kickstart_file' is"
     echo "      unspecified, then a generic kickstart file will be downloaded"
-    echo "      from this project's github repository and run on the new virtual"
-    echo "      machine. Similarly for 'postinstall=yes' and"
-    echo "      'postinstall_configure_files'."
+    echo "      from this project's github repository and run on the new guest"
+    echo "      machine. Similarly for 'postinstall=yes' and 'postinstall_configure_files'."
+    echo "    - 'postinstall_configure_files' should be a space delimited list"
+    echo "      of files which will be concatenated in the order given and run"
+    echo "      on the guest after the OS is installed."
     echo ""
 }
 
@@ -88,27 +90,23 @@ fi
 if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
+        kickstart_file="https://raw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
-        vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts"
+        vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
     fi
 fi
 
 if [ -n "$vm_properties_file" ]; then
-    # the properties file is an optional parameter, we distinguish it from a
-    # vm_option=... parameter by grepping for an "equals" preceded by one or
-    # more characters which are not question marks or forward slashes (which
-    # would indicate a filepath or url).
+    # the properties file is an optional parameter so "$vm_properties_file",
+    # which is just the script's "$4", may actually be a vm_option=... param;
+    # we determine whether it's a vm_option by grepping for an "equals" sign
+    # preceded by one or more characters which are not question marks or
+    # forward slashes (which would indicate a filepath or url and hence a
+    # properties file).
     if [ -z "`echo $vm_properties_file | sed -n '/^[^?\/]\+=.*/p'`" ]; then
-        vm_temp_properties_file="/tmp/${script}.vm.properties.${ts}"
-        if [ -f "$vm_temp_properties_file" ]; then
-            rm $vm_temp_properties_file
-        fi
         if [ -n "`echo $vm_properties_file | grep '^http[s]\?\|^ftp://'`" ];then
-            # a url - download to a file called vm.properties
-            if [ -f "$vm_temp_properties_file" ]; then
-                # sorry
-                rm -rf $vm_temp_properties_file
-            fi
+            # a url - download to a temp file
+            vm_temp_properties_file="/tmp/${script}.vm.properties.${ts}"
             wget --no-check-certificate $vm_properties_file -O $vm_temp_properties_file
             if [ $? -ne 0 ]; then
                 echo "Error: couldn't download file $vm_properties_file"
@@ -322,11 +320,6 @@ if [ $? -eq 0 ]; then
     fi
 fi
 
-if [ "$kickstart" = "yes" ] && [ -z "$kickstart_file" ]; then
-    if [ "$vm_ostype_label" = "archlinux" ]; then
-        kickstart_file="https://raw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
-    fi
-fi
 # Create VM
 VBoxManage createvm -name "$vm" --basefolder "$vm_basefolder" --ostype $vm_ostype -register
 
@@ -382,10 +375,16 @@ VBoxManage startvm "$vm"
 #
 ###############################################################################
 
-kickstart_file_local=""
-postinstall_file_local=""
+kickstart_file_local="${vm_root}/vboxen.kickstart"
+postinstall_file_local="${vm_root}/vboxen.postinstall"
+
+for f in $kickstart_file_local $postinstall_file_local; do
+    if [ -e "$f" ]; then
+        rm $f
+    fi
+done
+
 if [ "$kickstart" = "yes" ]; then
-    kickstart_file_local="${vm_root}/vboxen-$vm_ostype_label-$vm-kickstart-$ts"
     if [ -n "`echo $kickstart_file | grep '^http[s]\?\|^ftp://'`" ];then
         # it's a url
         wget --no-check-certificate $kickstart_file -O $kickstart_file_local
@@ -402,9 +401,9 @@ if [ "$kickstart" = "yes" ]; then
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_local; } | nc -l $kickstart_listen_host $kickstart_listen_port &
     echo "Launched kickstart listener."
 fi
+
 if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
-    postinstall_file_local="${vm_root}/vboxen-$vm_ostype_label-$vm-postinstall-$ts"
-    # write out environment variables to local file
+    # write out environment variables to local postinstall file
     if [ -n "$postinstall_environment_file" ]; then
         if [ -n "`echo $postinstall_environment_file | grep '^http[s]\?\|^ftp://'`" ];then
             # it's a url
@@ -610,7 +609,7 @@ case "$vm_ostype" in
             putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
             putscancode $kminus $kh && space && putscancode $kn $ko $kw
             enter
-            pause 30
+            pause 60
 
             # ensure boot from disk
             echo "detaching dvd medium"
@@ -619,16 +618,17 @@ case "$vm_ostype" in
             # startvm
             echo "restarting VM $vm"
             VBoxManage startvm "$vm"
-            pause 20
+            pause 60
+
+        fi
+
+        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_local" ]; then
 
             # login
             echo "login as root"
             putscancode $kr $ko $ko $kt && enter
             enter
-            pause 10
-        fi
-
-        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_local" ]; then
+            pause 20
 
             # bring up network
             echo "dhcpcd eth0"

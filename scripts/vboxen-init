@@ -1,7 +1,7 @@
 #!/bin/sh
 
+script="`basename $0`"
 usage () {
-    script="`basename $0`"
     echo "$script <vm_name> <os_type> <auto|iso_source_file> [properties_file]"
     echo ""
     echo "Examples:"
@@ -22,7 +22,7 @@ vm="$1"
 vm_ostype="$2"
 vm_source_iso_file="$3"
 vm_properties_file="$4"
-vm_basefolder="/srv/vbox"
+vm_basefolder="${HOME:-.}/.vbox"
 vm_force_delete_existing_machine="no"
 vm_base_memory="256"
 vm_video_memory="16"
@@ -71,18 +71,51 @@ if [ "$vm_source_iso_file" = "auto" ]; then
 fi
 
 if [ -n "$vm_properties_file" ]; then
-    if [ -n "`echo $vm_properties_file | grep '^http[s]\?\|^ftp://'`" ];then
-        # a url - download to a file called vm.properties
-        if [ -f "vm.properties" ]; then
-            # sorry
-            rm -rf vm.properties
+    if [ -z "`echo $vm_properties_file | sed -n '/[^?]\+=.*/p'`" ]; then
+        # it's not a key=value param
+        if [ -n "`echo $vm_properties_file | grep '^http[s]\?\|^ftp://'`" ];then
+            # a url - download to a file called vm.properties
+            if [ -f "vm.properties" ]; then
+                # sorry
+                rm -rf vm.properties
+            fi
+            wget --no-check-certificate $vm_properties_file -O vm.properties
+            vm_properties_file="vm.properties"
         fi
-        wget --no-check-certificate $vm_properties_file -O vm.properties
-        vm_properties_file="vm.properties"
-    fi
-    if [ ! -f $vm_properties_file ]; then
-        echo "properties file doesn't exist - $vm_properties_file"
-        exit 1
+        if [ ! -f $vm_properties_file ]; then
+            echo "properties file doesn't exist - $vm_properties_file"
+            exit 1
+        fi
+    else
+        # the fourth command line arg was a key=value, therefore no explicit
+        # properties file was given, therfore we are free to create one and
+        # don't need to worry about anything defined in this block being
+        # overridden later
+        basefolder="`echo '$@' | sed 's/^.*vm_basefolder=\([^ ]\+\).*/\1/'`"
+        if [ -n "basefolder" ]; then
+            if [ ! -d $basefolder ]; then
+                echo "vm_basefolder does not exist - $basefolder"
+                exit 1
+            else
+                vm_basefolder="`echo $basefolder | sed 's/\/$//'`"
+            fi
+        fi
+        vm_root="${vm_basefolder}/${vm}"
+        if [ ! -d $vm_root ]; then
+            mkdir -p $vm_root
+            if [ $? -ne 0 ]; then
+                echo "ERROR: couldn't create folder $vm_root"
+                exit 1
+            fi
+        fi
+        vm_properties_file="${vm_root}/vm.properties"
+        if [ ! -e $vm_properties_file ]; then
+            touch $vm_properties_file
+            if [ $? -ne 0 ]; then
+                echo "ERROR: couldn't create file $vm_properties_file"
+                exit 1
+            fi
+        fi
     fi
 fi
 
@@ -92,7 +125,7 @@ fi
 # The somersaults here are to deal with spaces in the passed in values, though
 # the spaces must still be backslash-escaped, eg.
 #
-#    $ vboxen testbox0 archlinux auto postinstall=no vm_option="has\ spaces"
+#    $ ${script} testbox0 archlinux auto postinstall=no vm_option="has\ spaces"
 #
 #------------------------------------------------------------------------------
 shift
@@ -120,6 +153,8 @@ EOF
     if [ -n "$splitargs" ]; then
         if [ -z "$vm_properties_file" ]; then
             vm_properties_file="vm.properties"
+        fi
+        if [ ! -e $vm_properties_file ]; then
             touch $vm_properties_file
         fi
         echo "" >> $vm_properties_file
@@ -184,7 +219,7 @@ configure_hostonly_adapter () {
                 fi
                 if [ "$line" = "$vm_hostonlyadapter_ip" ]; then
                     # found an adapter with that IP
-                    echo "Found existing hostonly adapter - $name (${vm_hostonlyadapter_ip})"
+                    echo "Using existing hostonly adapter - $name (${vm_hostonlyadapter_ip})"
                     vm_hostonlyadapter="$name"
                     return
                 fi
@@ -209,22 +244,38 @@ vm_disk_format=`echo $vm_disk_format | tr '[:lower:]' '[:upper:]'`
 vm_disk_format_lower=`echo $vm_disk_format | tr '[:upper:]' '[:lower:]'`
 vm_disk_filename="$vm_basefolder/$vm/disk0.$vm_disk_format_lower"
 vm_disk_size=`echo "2^10*$vm_disk_size_in_gigabytes" | bc`
+if [ -n "$vm_root" ]; then
+    vm_root="${vm_basefolder}/${vm}"
+fi
+if [ ! -d $vm_root ]; then
+    mkdir -p $vm_root
+    if [ $? -ne 0 ]; then
+        echo "ERROR: couldn't create folder $vm_root"
+        exit 1
+    fi
+fi
+
+###############################################################################
+#
+# Create a new VirtualBox machine
+#
+###############################################################################
 
 # Check for existing machine with that name
 VBoxManage list vms | grep "$vm" >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     if [ "$vm_force_delete_existing_machine" = "yes" ]; then
-        echo -n "Deleting existing VM $1..."
+        echo -n "Deleting existing VM ${vm}..."
         VBoxManage unregistervm $1 --delete
         echo "Deletion complete."
     else
-        echo "A machine with that name exists. Remove it with 'VBoxManage unregistervm $1 --delete'"; exit 1
+        echo "A machine with that name exists. Remove it with 'VBoxManage unregistervm $vm --delete'"; exit 1
     fi
 fi
 
 if [ "$kickstart" = "yes" ] && [ -z "$kickstart_file" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
-        kickstart_file="https://raw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic-install.cfg"
+        kickstart_file="https://rrraw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
     fi
 fi
 # Create VM

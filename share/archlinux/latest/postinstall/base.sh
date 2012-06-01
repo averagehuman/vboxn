@@ -4,8 +4,8 @@ dhcpcd eth0
 
 # root password
 passwd<<EOF
-${STARMAN_ROOT_PASSWORD:=vboxen}
-${STARMAN_ROOT_PASSWORD}
+${VBOXEN_ROOT_PASSWORD:=vboxen}
+${VBOXEN_ROOT_PASSWORD}
 EOF
 
 # sudo setup
@@ -25,7 +25,7 @@ echo "ALL:  ALL" > /etc/hosts.deny
 sed -i 's:^DAEMONS\(.*\))$:DAEMONS\1 sshd):' /etc/rc.conf
 
 # set a package mirror
-echo "Server = ${STARMAN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
+echo "Server = ${VBOXEN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
 
 # update pacman
 pacman -Syy

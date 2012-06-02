@@ -90,7 +90,7 @@ fi
 if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
-        kickstart_file="https://raw.github.com/podados/vboxen/master/share/archlinux/latest/aif-generic.cfg"
+        kickstart_file="https://raw.github.com/devopsni/vboxen/master/share/archlinux/latest/aif-generic.cfg"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
         vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
     fi

@@ -453,9 +453,7 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
     # append any "all uppercase" variables from the local properties file
     if [ -f "$vm_properties_file" ]; then
         echo "" >> $postinstall_file_final
-        for line in `sed -n '/^[_A-Z]\+=.*/p' $vm_properties_file`; do
-            echo $line >> $postinstall_file_final
-        done
+        echo "`sed -n '/^[_A-Z]\+=.*$/p' $vm_properties_file`" >> $postinstall_file_final
         echo "" >> $postinstall_file_final
     fi
     ip_defined=`sed -n "/^VBOXEN_IP=.\+/p" $postinstall_file_final`

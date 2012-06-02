@@ -2,7 +2,7 @@
 
 script="`basename $0`"
 usage () {
-    echo "$script <vm_name> <os_type> <auto|iso_source_file> [properties_file] [vm_option=..., vm_option=...]"
+    echo "$script <vm_name> <os_type> <auto|auto64|iso_source_file> [properties_file] [vm_option=..., vm_option=...]"
     echo ""
     echo "Description:"
     echo ""
@@ -20,22 +20,42 @@ usage () {
     echo ""
     echo "Notes:"
     echo ""
-    echo "    - Specifying 'auto' for the iso source will download the latest generic"
-    echo "      32-bit installation image for the OS"
-    echo "    - A properties file can optionally be used to supply overrides to the"
-    echo "      default VM config options, it is sourced by $script and should be a"
-    echo "      valid shell script."
-    echo "    - Properties can additionally be defined as command line"
-    echo "      arguments. If both a properties file and command line properties"
-    echo "      are given, then those specified on the command line will take"
-    echo "      precedence."
-    echo "    - If 'kickstart=yes' (the default) and 'kickstart_file' is"
-    echo "      unspecified, then a generic kickstart file will be downloaded"
-    echo "      from this project's github repository and run on the new guest"
-    echo "      machine. Similarly for 'postinstall=yes' and 'postinstall_configure_files'."
-    echo "    - 'postinstall_configure_files' should be a space delimited list"
-    echo "      of files which will be concatenated in the order given and run"
-    echo "      on the guest after the OS is installed."
+    echo "  - Specifying 'auto' or 'auto64' for the iso source will download"
+    echo "    the latest generic 32/64-bit installation image for the OS"
+    echo ""
+    echo "  - A properties file can optionally be used to supply overrides to the"
+    echo "    default VM config options, it is sourced by $script and should be a"
+    echo "    valid shell script."
+    echo ""
+    echo "  - Properties can additionally be defined as command line"
+    echo "    arguments. If both a properties file and command line properties"
+    echo "    are given, then those specified on the command line will take"
+    echo "    precedence."
+    echo ""
+    echo "  - If 'kickstart=yes' (the default) and 'kickstart_file' is"
+    echo "    unspecified, then a generic kickstart file will be downloaded"
+    echo "    from this project's github repository and run on the new guest"
+    echo "    machine. Similarly for 'postinstall=yes' and 'postinstall_configure_files'."
+    echo ""
+    echo "  - 'postinstall_configure_files' should be a space delimited list"
+    echo "    of files which will be concatenated in the order given and run"
+    echo "    on the guest after the OS is installed.  'postinstall_configure_root'"
+    echo "    can optionally be defined as a prefix for the postinstall files."
+    echo ""
+    echo "  - The kickstart and postinstall files are made available to the"
+    echo "    guest machine by running \"one shot\" web servers on the host."
+    echo "    The default address and port for these web servers to listen on"
+    echo "    is '192.168.1.100:8585' and '192.168.1.100:8586'. This can be"
+    echo "    changed by specifying the 'kickstart_listen_on' and"
+    echo "    'post_install_listen_on' parameters. Eg."
+    echo ""
+    echo "        $script testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080"
+    echo ""
+    echo "  - The default wait time for the kickstart and postinstall scripts is"
+    echo "    600 seconds (10 minutes), this can be changed by specifying the"
+    echo "    'kickstart_wait' and 'postinstall_wait' options, eg."
+    echo ""
+    echo "        $script testbox0 ubuntu auto kickstart_wait=300"
     echo ""
 }
 
@@ -55,19 +75,18 @@ vm_vrde_address=""
 vm_ostype_label=`echo "$vm_ostype" | tr '[:upper:]' '[:lower:]' | sed "s/_64$/64/"`
 vm_hostonlyadapter_ip="192.168.44.1"
 vm_hostonlyadapter_mask="255.255.255.0"
+vm_ip_address="192.168.44.100"
 
 kickstart="yes"
 kickstart_file=""
-kickstart_listen_host="192.168.1.100"
-kickstart_listen_port="8585"
+kickstart_listen_on="192.168.1.100:8585"
 kickstart_wait=600
 
 postinstall="yes"
 postinstall_environment_file=""
 postinstall_configure_root=""
 postintstall_configure_files=""
-postinstall_listen_host="192.168.1.100"
-postinstall_listen_port="8586"
+postinstall_listen_on="192.168.1.100:8586"
 postinstall_wait=600
 
 ts=`date +%Y%m%d%H%M%S`
@@ -407,6 +426,8 @@ if [ "$kickstart" = "yes" ]; then
     fi
     # background a one shot web server whose job it is to serve the kickstart
     # file to the guest
+    kickstart_listen_host=`echo $kickstart_listen_on | sed "s/^\(.*\):.*/\1/"`
+    kickstart_listen_port=`echo $kickstart_listen_on | sed "s/^.*:\(.*\)/\1/"`
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_final; } | nc -l $kickstart_listen_host $kickstart_listen_port &
     echo "Launched kickstart listener."
 fi
@@ -437,7 +458,18 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         done
         echo "" >> $postinstall_file_final
     fi
+    ip_defined=`sed -n "/^VBOXEN_IP=.\+/p" $postinstall_file_final`
+    if [ -z "$ip_defined" ]; then
+        if [ -z "$vm_ip_address" ]; then
+            subnet=`echo $vm_hostonlyadapter_ip | sed "s/\(.*\.\).*/\1/"`
+            vm_ip_address="${subnet}.100"
+        fi
+        echo 'VBOXEN_IP="'$vm_ip_address'"' >> $postinstall_file_final
+    fi
     # append any postinstall configure files
+    divide="#----------------------------------------------------------------"
+    echo "" >> $postinstall_file_final
+    echo $divide >> $postinstall_file_final
     for f in $postinstall_configure_files; do
         if [ -n "$postinstall_configure_root" ]; then
             # strip trailing slash and join
@@ -453,9 +485,12 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         else
             cat $f >> $postinstall_file_final
         fi
+        echo $divide >> $postinstall_file_final
     done
     # background a one shot web server whose job it is to serve the
     # postinstall file to the guest
+    postinstall_listen_host=`echo $postinstall_listen_on | sed "s/^\(.*\):.*/\1/"`
+    postinstall_listen_port=`echo $postinstall_listen_on | sed "s/^.*:\(.*\)/\1/"`
     { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_final; } | nc -l $postinstall_listen_host $postinstall_listen_port &
     echo "Launched postinstall listener."
 fi
@@ -636,7 +671,6 @@ case "$vm_ostype" in
             # login
             echo "login as root"
             putscancode $kr $ko $ko $kt && enter
-            enter
             pause 20
 
             # bring up network

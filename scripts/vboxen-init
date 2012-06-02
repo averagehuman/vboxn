@@ -91,6 +91,8 @@ if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
         kickstart_file="https://raw.github.com/devopsni/vboxen/master/share/archlinux/latest/aif-generic.cfg"
+        postinstall_configure_root="https://raw.github.com/devopsni/vboxen/master/share/archlinux/latest/postinstall"
+        postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
         vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
     fi
@@ -283,7 +285,7 @@ vm_disk_format=`echo $vm_disk_format | tr '[:lower:]' '[:upper:]'`
 vm_disk_format_lower=`echo $vm_disk_format | tr '[:upper:]' '[:lower:]'`
 vm_disk_filename="$vm_basefolder/$vm/disk0.$vm_disk_format_lower"
 vm_disk_size=`echo "2^10*$vm_disk_size_in_gigabytes" | bc`
-if [ -n "$vm_root" ]; then
+if [ -z "$vm_root" ]; then
     vm_root="${vm_basefolder}/${vm}"
 fi
 if [ ! -d $vm_root ]; then

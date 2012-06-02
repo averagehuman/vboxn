@@ -12,14 +12,27 @@ images.  It is intended as a developer utility similar to `veewee`_.
 
 `vboxen`_ includes two user-facing scripts - **vboxen-init** for creating and
 bootstrapping a new virtual machine, and **vboxen** for manipulating existing
-machines. **vboxen-init** is a Bash script and, although it will be installed
-as part of the standard Python package installation, it could also be used
-standalone without requiring either Python or `vboxen`_ itself.
+machines.
 
-``vboxen-init``
-===============
+Installation
+============
 
-Usage::
+Install the development version with pip::
+
+    pip install -e git+https://github.com/podados/vboxen.git#egg=vboxen
+
+
+vboxen-init
+===========
+
+**vboxen-init** is a Bash script and, although it will be installed as part
+of the standard Python package installation, it could also be used standalone
+without requiring either Python or `vboxen`_ itself.
+
+Usage
+~~~~~
+
+::
 
     vboxen-init <vm_name> <os_type> <auto|iso_source_file> [properties_file] [vm_option=..., vm_option=...]
 

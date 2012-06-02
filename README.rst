@@ -8,11 +8,13 @@ Overiew
 =======
 
 `vboxen`_ is a Python/Bash library for headlessly creating new VirtualBox machine
-images.  It is intended as a developer utility similar to `veewee`_.
+images.  It is intended as a developer utility and could be considered as an
+alternative to `veewee`_.
 
-`vboxen`_ includes two user-facing scripts - **vboxen-init** for creating and
-bootstrapping a new virtual machine, and **vboxen** for manipulating existing
-machines.
+The package includes two user-facing scripts:
+
++ **vboxen-init** for creating and bootstrapping a new virtual machine
++ **vboxen** for manipulating existing machines.
 
 Installation
 ============

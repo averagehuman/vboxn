@@ -1,6 +1,9 @@
 
-include README
+include README.rst
+include requirements.txt
 include ez_setup.py
+include bootstrap.py
+include buildout.cfg
 recursive-include docs *.rst
 recursive-include share *
 

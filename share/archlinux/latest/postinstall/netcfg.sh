@@ -1,14 +1,14 @@
 
-pacman -S netcfg
+pacman -S netcfg --noconfirm
 
-cat <<EOF > /etc/network.d/nat
+cat <<EOF > /etc/network.d/eth0
 CONNECTION='ethernet'
 DESCRIPTION='NATd interface'
 INTERFACE='eth0'
 IP='dhcp'
 EOF
 
-cat <<EOF > /etc/network.d/hostonly
+cat <<EOF > /etc/network.d/eth1
 CONNECTION='ethernet'
 DESCRIPTION='Host-only interface'
 INTERFACE='eth1'
@@ -19,7 +19,7 @@ EOF
 
 cat <<EOF > /etc/conf.d/netcfg
 
-NETWORKS=(nat hostonly)
+NETWORKS=(eth0 eth1)
 
 EOF
 

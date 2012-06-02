@@ -24,7 +24,12 @@ echo "ALL:  ALL" > /etc/hosts.deny
 # make sure sshd starts
 sed -i 's:^DAEMONS\(.*\))$:DAEMONS\1 sshd):' /etc/rc.conf
 
-# set a package mirror
+# uncomment package mirrors, eg. patterns=heanet hosteurope hawaii
+for pattern in $VBOXEN_PACKAGE_MIRROR_PATTERNS; do
+    sed -i 's/^#\(Server.*'${pattern}'.*\)/\1/g' /etc/pacman.d/mirrorlist
+done
+
+# set a fallback package mirror
 echo "Server = ${VBOXEN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
 
 # no idea

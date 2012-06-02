@@ -1,6 +1,4 @@
 
-# make sure network is up and a nameserver is available
-dhcpcd eth0
 
 # root password
 passwd<<EOF

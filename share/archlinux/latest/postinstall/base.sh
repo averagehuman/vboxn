@@ -27,6 +27,9 @@ sed -i 's:^DAEMONS\(.*\))$:DAEMONS\1 sshd):' /etc/rc.conf
 # set a package mirror
 echo "Server = ${VBOXEN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
 
+# no idea
+rm -f /usr/bin/tzselect /usr/sbin/zdump /usr/sbin/zic
+
 # update pacman
 pacman -Syy
 pacman -S --noconfirm pacman

@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import vboxen.ui
+
+
+def main():
+    vboxen.ui.main()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise SystemExit('\nUser ended program.')
+

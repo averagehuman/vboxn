@@ -141,7 +141,7 @@ if [ -n "$vm_properties_file" ]; then
                 exit 1
             fi
         fi
-        vm_properties_file="${vm_root}/vm.properties"
+        vm_properties_file="${vm_root}/vboxen.properties"
         if [ -e $vm_properties_file ]; then
             rm $vm_properties_file
         fi
@@ -294,9 +294,15 @@ if [ ! -d $vm_root ]; then
     fi
 fi
 if [ -f "$vm_properties_file" ]; then
-    cp $vm_properties_file $vm_root
+    file_copy="/tmp/${script}.${vm}.properties.${ts}.copy"
+    file_final="$vm_root/vboxen.properties"
+    cp $vm_properties_file $file_copy
+    if [ -e "$file_final" ]; then
+        rm -f $file_final
+    fi
+    mv $file_copy $file_final
 fi
-if [ -n "$vm_temp_properties_file" ]; then
+if [ -e "$vm_temp_properties_file" ]; then
     # it was given as a url and downloaded to a temp location
     rm $vm_temp_properties_file
 fi
@@ -375,30 +381,31 @@ VBoxManage startvm "$vm"
 #
 ###############################################################################
 
-kickstart_file_local="${vm_root}/vboxen.kickstart"
-postinstall_file_local="${vm_root}/vboxen.postinstall"
+kickstart_file_final="${vm_root}/vboxen.kickstart"
+postinstall_file_final="${vm_root}/vboxen.postinstall"
 
-for f in $kickstart_file_local $postinstall_file_local; do
-    if [ -e "$f" ]; then
-        rm $f
-    fi
-done
+if [ -e "$kickstart_file_final" ] && [ "$kickstart_file_final" != "${kickstart_file}" ]; then
+    rm -rf $kickstart_file_final
+fi
+if [ -e "$postinstall_file_final" ]; then
+    rm -rf $postinstall_file_final
+fi
 
 if [ "$kickstart" = "yes" ]; then
     if [ -n "`echo $kickstart_file | grep '^http[s]\?\|^ftp://'`" ];then
         # it's a url
-        wget --no-check-certificate $kickstart_file -O $kickstart_file_local
+        wget --no-check-certificate $kickstart_file -O $kickstart_file_final
         if [ $? -ne 0 ]; then
             echo "Error: couldn't download file $kickstart_file"
             exit 1
         fi
     else
         # copy to local file
-        cp $kickstart_file $kickstart_file_local
+        cp $kickstart_file $kickstart_file_final
     fi
     # background a one shot web server whose job it is to serve the kickstart
     # file to the guest
-    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_local; } | nc -l $kickstart_listen_host $kickstart_listen_port &
+    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_final; } | nc -l $kickstart_listen_host $kickstart_listen_port &
     echo "Launched kickstart listener."
 fi
 
@@ -407,26 +414,26 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
     if [ -n "$postinstall_environment_file" ]; then
         if [ -n "`echo $postinstall_environment_file | grep '^http[s]\?\|^ftp://'`" ];then
             # it's a url
-            wget --no-check-certificate $postinstall_environment_file -O $postinstall_file_local
+            wget --no-check-certificate $postinstall_environment_file -O $postinstall_file_final
             if [ $? -ne 0 ]; then
                 echo "Error: couldn't download file $postinstall_environment_file"
                 exit 1
             fi
         else
             # copy to local file
-            cp $postinstall_environment_file $postinstall_file_local
+            cp $postinstall_environment_file $postinstall_file_final
         fi
     fi
-    if [ ! -f $postinstall_file_local ]; then
-        touch $postinstall_file_local
+    if [ ! -f $postinstall_file_final ]; then
+        touch $postinstall_file_final
     fi
     # append any "all uppercase" variables from the local properties file
     if [ -f "$vm_properties_file" ]; then
-        echo "" >> $postinstall_file_local
+        echo "" >> $postinstall_file_final
         for line in `sed -n '/^[_A-Z]\+=.*/p' $vm_properties_file`; do
-            echo $line >> $postinstall_file_local
+            echo $line >> $postinstall_file_final
         done
-        echo "" >> $postinstall_file_local
+        echo "" >> $postinstall_file_final
     fi
     # append any postinstall configure files
     for f in $postinstall_configure_files; do
@@ -436,18 +443,18 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
             f="$postinstall_configure_root/$f"
         fi
         if [ -n "`echo $f | grep '^http[s]\?\|^ftp://'`" ];then
-            wget --no-check-certificate $f -O - >> $postinstall_file_local
+            wget --no-check-certificate $f -O - >> $postinstall_file_final
             if [ $? -ne 0 ]; then
                 echo "Error: couldn't download file $f"
                 exit 1
             fi
         else
-            cat $f >> $postinstall_file_local
+            cat $f >> $postinstall_file_final
         fi
     done
     # background a one shot web server whose job it is to serve the
     # postinstall file to the guest
-    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_local; } | nc -l $postinstall_listen_host $postinstall_listen_port &
+    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_final; } | nc -l $postinstall_listen_host $postinstall_listen_port &
     echo "Launched postinstall listener."
 fi
 
@@ -578,7 +585,7 @@ case "$vm_ostype" in
         enter
         pause 40
 
-        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_local" ]; then
+        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
 
             # bring up network
             echo "dhcpcd eth0"
@@ -622,7 +629,7 @@ case "$vm_ostype" in
 
         fi
 
-        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_local" ]; then
+        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
 
             # login
             echo "login as root"

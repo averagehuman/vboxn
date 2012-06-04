@@ -36,8 +36,9 @@ rm -f /usr/bin/tzselect /usr/sbin/zdump /usr/sbin/zic
 # update pacman
 pacman -Syy
 pacman -S --noconfirm pacman
+pacman-key --init
 
 # upgrade pacman db
-pacman-db-upgrade
-pacman -Syy
+#pacman-db-upgrade
+pacman -Syuf
 

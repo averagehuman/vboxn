@@ -114,6 +114,9 @@ if [ "$vm_source_iso_file" = "auto" ]; then
         postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
         vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
+        kickstart_file="https://raw.github.com/devopsni/vboxen/master/share/ubuntu/12.04/preseed.cfg"
+        postinstall_configure_root="https://raw.github.com/devopsni/vboxen/master/share/ubuntu/12.04/postinstall"
+        postinstall_configure_files="base.sh vagrant.sh"
     fi
 fi
 
@@ -693,7 +696,7 @@ case "$vm_ostype" in
             putscancode $ks $kh && space
             putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
             enter
-            pause ${postinstall_wait:-600}
+            #pause ${postinstall_wait:-600}
         fi
 
         # shutdown

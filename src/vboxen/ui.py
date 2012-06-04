@@ -14,7 +14,7 @@ def commands_from_module(m):
     d = {}
     for k, v in m.__dict__.items():
         if hasattr(v, 'run') and v is not Command:
-            d[k] = EntryPointWrapper(k, v)
+            d[k.lower()] = EntryPointWrapper(k.lower(), v)
     return d
 
 class UICommandManager(CommandManager):

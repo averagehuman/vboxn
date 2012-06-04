@@ -43,10 +43,15 @@ except AttributeError:
 
 def list_vms():
     lines = call([
-        'VBoxManage', 'list', 'vms'
+        'VBoxManage', 'list', 'vms',
     ]) or ''
     return [line.split()[0][1:-1] for line in lines.splitlines() if line]
 
+def list_objects(objtype):
+    lines = call([
+        'VBoxManage', 'list', objtype,
+    ]) or ''
+    return lines.splitlines()
 
 def destroy_vm(name):
     return call([

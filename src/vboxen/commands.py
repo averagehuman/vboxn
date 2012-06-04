@@ -1,5 +1,6 @@
 
 import os
+import sys
 
 from cliff.command import Command
 
@@ -22,16 +23,7 @@ def assert_vm_exists(method):
         return method(self, *parsed_args)
     return run
 
-class hello(Command):
-    """Hi there
-
-    More info here
-    """
-
-    def run(self, *parsed_args):
-        os.system('vboxen-init')
-
-class destroy(VBoxManageCommandBase):
+class Destroy(VBoxManageCommandBase):
     """Unregister a VirtualBox machine and delete all attached disks.
 
     More info here
@@ -40,4 +32,24 @@ class destroy(VBoxManageCommandBase):
     @assert_vm_exists
     def run(self, *parsed_args):
         client.destroy_vm(self.vm_name)
+
+class List(Command):
+    """List VirtualBox objects - vms, adapters, hard drives etc.
+
+    """
+
+    def get_parser(self, prog_name):
+        parser = super(List, self).get_parser(prog_name)
+        parser.add_argument(
+            'objtype',
+            choices=[
+                'vms', 'runningvms', 'ostypes', 'hdds', 'dvds'
+            ],
+            help=" an object type, eg. vms",
+        )
+        return parser
+
+    def run(self, *parsed_args):
+        for line in client.list_objects(parsed_args[0].objtype):
+            sys.stdout.write(line+'\n')
 

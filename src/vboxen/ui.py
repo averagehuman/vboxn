@@ -1,4 +1,47 @@
 
-def main():
-    print('hi from vboxen')
+import logging
+import sys
+
+from cliff.app import App
+from cliff.command import Command
+from cliff.commandmanager import CommandManager, EntryPointWrapper
+
+from vboxen.utils import import_object
+
+def commands_from_module(m):
+    if isinstance(m, basestring):
+        m = import_object(m)
+    d = {}
+    for k, v in m.__dict__.items():
+        if hasattr(v, 'run') and v is not Command:
+            d[k] = EntryPointWrapper(k, v)
+    return d
+
+class UICommandManager(CommandManager):
+
+    def _load_commands(self):
+        d = commands_from_module('vboxen.commands')
+        self.commands.update(d)
+
+class UI(App):
+
+    log = logging.getLogger(__name__)
+
+    def __init__(self):
+        super(UI, self).__init__(
+            description='Command line interaction with VirtualBox machine images.',
+            version='0.1',
+            command_manager=UICommandManager('vboxen.ui'),
+            )
+
+    def interact(self):
+        return self.run(['-h'])
+
+def main(argv=sys.argv[1:]):
+    ui = UI()
+    return ui.run(argv)
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
 

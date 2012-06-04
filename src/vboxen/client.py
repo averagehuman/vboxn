@@ -41,8 +41,16 @@ except AttributeError:
             raise subprocess.CalledProcessError(retcode, cmd, output=output)
         return output
 
+def list_vms():
+    lines = call([
+        'VBoxManage', 'list', 'vms'
+    ]) or ''
+    return [line.split()[0][1:-1] for line in lines.splitlines() if line]
+
+
 def destroy_vm(name):
     return call([
         'VBoxManage', 'unregistervm', name, '--delete',
     ])
+
 

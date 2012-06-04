@@ -35,7 +35,7 @@ Usage
 
 ::
 
-    vboxen-init <vm_name> <os_type> <auto|iso_source_file> [properties_file] [vm_option=..., vm_option=...]
+    vboxen-init <vm_name> <os_type> <auto|auto64|iso_source_file> [properties_file] [vm_option=..., vm_option=...]
 
     Description:
 
@@ -53,26 +53,42 @@ Usage
 
     Notes:
 
-        - Specifying 'auto' for the iso source will download the latest generic
-          32-bit installation image for the OS
+      - Specifying 'auto' or 'auto64' for the iso source will download
+        the latest generic 32/64-bit installation image for the OS
 
-        - A properties file can optionally be used to supply overrides to the
-          default VM config options, it is sourced by vboxen-init and should be a
-          valid shell script.
+      - A properties file can optionally be used to supply overrides to the
+        default VM config options, it is sourced by vboxen-init and should be a
+        valid shell script.
 
-        - If Python is installed, properties can additionally be defined as
-          command line arguments. If both a properties file and command line
-          properties are given, then those specified on the command line will
-          take precedence. Spaces in argument values must be backslash-escaped.
+      - Properties can additionally be defined as command line
+        arguments. If both a properties file and command line properties
+        are given, then those specified on the command line will take
+        precedence.
 
-        - If 'kickstart=yes' (the default) and 'kickstart_file' is
-          unspecified, then a generic kickstart file will be downloaded
-          from this project's github repository and run on the new guest
-          machine. Similarly for 'postinstall=yes' and 'postinstall_configure_files'.
+      - If 'kickstart=yes' (the default) and 'kickstart_file' is
+        unspecified, then a generic kickstart file will be downloaded
+        from this project's github repository and run on the new guest
+        machine. Similarly for 'postinstall=yes' and 'postinstall_configure_files'.
 
-        - 'postinstall_configure_files' should be a space-delimited list
-          of files which will be concatenated in the order given and run
-          on the guest after the OS is installed.
+      - 'postinstall_configure_files' should be a space delimited list
+        of files which will be concatenated in the order given and run
+        on the guest after the OS is installed.  'postinstall_configure_root'
+        can optionally be defined as a prefix for the postinstall files.
+
+      - The kickstart and postinstall files are made available to the
+        guest machine by running "one shot" web servers on the host.
+        The default address and port for these web servers to listen on
+        is '192.168.1.100:8585' and '192.168.1.100:8586'. This can be
+        changed by specifying the 'kickstart_listen_on' and
+        'post_install_listen_on' parameters. Eg.
+
+            vboxen-init testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080
+
+      - The default wait time for the kickstart and postinstall scripts is
+        600 seconds (10 minutes), this can be changed by specifying the
+        'kickstart_wait' and 'postinstall_wait' options, eg.
+
+            vboxen-init testbox0 ubuntu auto kickstart_wait=300
 
 
 .. _vboxen: https://github.com/devopsni/vboxen

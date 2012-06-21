@@ -63,7 +63,7 @@ vm="$1"
 vm_ostype="$2"
 vm_source_iso_file="$3"
 vm_properties_file="$4"
-vm_basefolder="${HOME:-.}/.vboxen"
+vm_basefolder="${HOME:-.}/.vboxn"
 vm_force_delete_existing_machine="no"
 vm_base_memory="256"
 vm_video_memory="16"
@@ -109,13 +109,13 @@ fi
 if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
-        kickstart_file="https://raw.github.com/devopsni/vboxen/master/share/archlinux/latest/aif-generic.cfg"
-        postinstall_configure_root="https://raw.github.com/devopsni/vboxen/master/share/archlinux/latest/postinstall"
+        kickstart_file="https://raw.github.com/devopsni/vboxn/master/share/archlinux/latest/aif-generic.cfg"
+        postinstall_configure_root="https://raw.github.com/devopsni/vboxn/master/share/archlinux/latest/postinstall"
         postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
         vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
-        kickstart_file="https://raw.github.com/devopsni/vboxen/master/share/ubuntu/12.04/preseed.cfg"
-        postinstall_configure_root="https://raw.github.com/devopsni/vboxen/master/share/ubuntu/12.04/postinstall"
+        kickstart_file="https://raw.github.com/devopsni/vboxn/master/share/ubuntu/12.04/preseed.cfg"
+        postinstall_configure_root="https://raw.github.com/devopsni/vboxn/master/share/ubuntu/12.04/postinstall"
         postinstall_configure_files="base.sh vagrant.sh"
     fi
 fi
@@ -165,7 +165,7 @@ if [ -n "$vm_properties_file" ]; then
                 exit 1
             fi
         fi
-        vm_properties_file="${vm_root}/vboxen.properties"
+        vm_properties_file="${vm_root}/vboxn.properties"
         if [ -e $vm_properties_file ]; then
             rm $vm_properties_file
         fi
@@ -319,7 +319,7 @@ if [ ! -d $vm_root ]; then
 fi
 if [ -f "$vm_properties_file" ]; then
     file_copy="/tmp/${script}.${vm}.properties.${ts}.copy"
-    file_final="$vm_root/vboxen.properties"
+    file_final="$vm_root/vboxn.properties"
     cp $vm_properties_file $file_copy
     if [ -e "$file_final" ]; then
         rm -f $file_final
@@ -405,8 +405,8 @@ VBoxManage startvm "$vm"
 #
 ###############################################################################
 
-kickstart_file_final="${vm_root}/vboxen.kickstart"
-postinstall_file_final="${vm_root}/vboxen.postinstall"
+kickstart_file_final="${vm_root}/vboxn.kickstart"
+postinstall_file_final="${vm_root}/vboxn.postinstall"
 
 if [ -e "$kickstart_file_final" ] && [ "$kickstart_file_final" != "${kickstart_file}" ]; then
     rm -rf $kickstart_file_final
@@ -459,13 +459,13 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         echo "`sed -n '/^[_A-Z]\+=.*$/p' $vm_properties_file`" >> $postinstall_file_final
         echo "" >> $postinstall_file_final
     fi
-    ip_defined=`sed -n "/^VBOXEN_IP=.\+/p" $postinstall_file_final`
+    ip_defined=`sed -n "/^VBOXN_IP=.\+/p" $postinstall_file_final`
     if [ -z "$ip_defined" ]; then
         if [ -z "$vm_ip_address" ]; then
             subnet=`echo $vm_hostonlyadapter_ip | sed "s/\(.*\.\).*/\1/"`
             vm_ip_address="${subnet}.100"
         fi
-        echo 'VBOXEN_IP="'$vm_ip_address'"' >> $postinstall_file_final
+        echo 'VBOXN_IP="'$vm_ip_address'"' >> $postinstall_file_final
     fi
     # append any postinstall configure files
     divide="#----------------------------------------------------------------"

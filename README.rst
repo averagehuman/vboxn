@@ -1,41 +1,41 @@
 
-vboxen
+vboxn
 ######
 
-`vboxen`_ automates the creation of VirtualBox machines.
+`vboxn`_ automates the creation of VirtualBox machines.
 
 Overiew
 =======
 
-`vboxen`_ is a Python/Bash library for headlessly creating new VirtualBox machine
+`vboxn`_ is a Python/Bash library for headlessly creating new VirtualBox machine
 images.  It is intended as a developer utility similar in scope to `veewee`_.
 
 The package includes two user-facing scripts:
 
-+ **vboxen-init** for creating and bootstrapping a new virtual machine
-+ **vboxen** for manipulating existing machines.
++ **vboxn-init** for creating and bootstrapping a new virtual machine
++ **vboxn** for manipulating existing machines.
 
 Installation
 ============
 
 Install the development version with pip::
 
-    pip install -e git+https://github.com/devopsni/vboxen.git#egg=vboxen
+    pip install -e git+https://github.com/devopsni/vboxn.git#egg=vboxn
 
 
-vboxen-init
+vboxn-init
 ===========
 
-**vboxen-init** is a Bash script and, although it will be installed as part
+**vboxn-init** is a Bash script and, although it will be installed as part
 of the standard Python package installation, it could also be used standalone
-without requiring either Python or `vboxen`_ itself.
+without requiring either Python or `vboxn`_ itself.
 
 Usage
 ~~~~~
 
 ::
 
-    vboxen-init <vm_name> <os_type> <auto|auto64|iso_source_file> [properties_file] [vm_option=..., vm_option=...]
+    vboxn-init <vm_name> <os_type> <auto|auto64|iso_source_file> [properties_file] [vm_option=..., vm_option=...]
 
     Description:
 
@@ -43,13 +43,13 @@ Usage
 
     Examples:
 
-        vboxen-init testbox0 archlinux auto
-        vboxen-init testbox0 archlinux archlinux-2011.08.19-core-i686.iso
-        vboxen-init testbox0 archlinux iso/archlinux-2011.08.19-core-i686.iso conf/vm.properties
-        vboxen-init testbox0 archlinux auto kickstart=no
-        vboxen-init testbox0 archlinux auto kickstart_file=bootstrap.sh
-        vboxen-init testbox0 archlinux auto postinstall=no
-        vboxen-init testbox0 archlinux auto vm_basefolder=/srv/vbox
+        vboxn-init testbox0 archlinux auto
+        vboxn-init testbox0 archlinux archlinux-2011.08.19-core-i686.iso
+        vboxn-init testbox0 archlinux iso/archlinux-2011.08.19-core-i686.iso conf/vm.properties
+        vboxn-init testbox0 archlinux auto kickstart=no
+        vboxn-init testbox0 archlinux auto kickstart_file=bootstrap.sh
+        vboxn-init testbox0 archlinux auto postinstall=no
+        vboxn-init testbox0 archlinux auto vm_basefolder=/srv/vbox
 
     Notes:
 
@@ -57,7 +57,7 @@ Usage
         the latest generic 32/64-bit installation image for the OS
 
       - A properties file can optionally be used to supply overrides to the
-        default VM config options, it is sourced by vboxen-init and should be a
+        default VM config options, it is sourced by vboxn-init and should be a
         valid shell script.
 
       - Properties can additionally be defined as command line
@@ -82,16 +82,16 @@ Usage
         changed by specifying the 'kickstart_listen_on' and
         'post_install_listen_on' parameters. Eg.
 
-            vboxen-init testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080
+            vboxn-init testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080
 
       - The default wait time for the kickstart and postinstall scripts is
         600 seconds (10 minutes), this can be changed by specifying the
         'kickstart_wait' and 'postinstall_wait' options, eg.
 
-            vboxen-init testbox0 ubuntu auto kickstart_wait=300
+            vboxn-init testbox0 ubuntu auto kickstart_wait=300
 
 
-.. _vboxen: https://github.com/devopsni/vboxen
+.. _vboxn: https://github.com/devopsni/vboxn
 .. _veewee: https://github.com/jedi4ever/veewee
 
 

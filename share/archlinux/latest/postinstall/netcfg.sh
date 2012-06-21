@@ -13,8 +13,8 @@ CONNECTION='ethernet'
 DESCRIPTION='Host-only interface'
 INTERFACE='eth1'
 IP='static'
-ADDR='${VBOXEN_IP:-192.168.44.100}'
-NETMASK='${VBOXEN_NETMASK:-255.255.255.0}'
+ADDR='${VBOXN_IP:-192.168.44.100}'
+NETMASK='${VBOXN_NETMASK:-255.255.255.0}'
 EOF
 
 cat <<EOF > /etc/conf.d/netcfg

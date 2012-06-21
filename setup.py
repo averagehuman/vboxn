@@ -10,9 +10,9 @@ long_description = readme + "\n\n" + changes
 
 
 setup(
-    name="vboxen",
+    name="vboxn",
     version=__version__,
-    description="Automate the creation of VirtualBox machines.",
+    description="Automate the creation and provisioning of VirtualBox machines.",
     author="Gerard Flanagan",
     author_email="contact@devopsni.com",
     long_description=long_description,
@@ -21,10 +21,10 @@ setup(
                 "Programming Language :: Shell",
                 ],
     package_dir = {'': 'src'},
-    packages = ['vboxen'],
+    packages = ['vboxn'],
     scripts=[
-        'scripts/vboxen',
-        'scripts/vboxen-init',
+        'scripts/vboxn',
+        'scripts/vboxn-init',
     ]
 )
     

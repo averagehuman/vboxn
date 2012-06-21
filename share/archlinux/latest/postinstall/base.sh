@@ -2,8 +2,8 @@
 
 # root password
 passwd<<EOF
-${VBOXEN_ROOT_PASSWORD:=vboxen}
-${VBOXEN_ROOT_PASSWORD}
+${VBOXN_ROOT_PASSWORD:=vboxn}
+${VBOXN_ROOT_PASSWORD}
 EOF
 
 # sudo setup
@@ -23,12 +23,12 @@ echo "ALL:  ALL" > /etc/hosts.deny
 sed -i 's:^DAEMONS\(.*\))$:DAEMONS\1 sshd):' /etc/rc.conf
 
 # uncomment package mirrors, eg. patterns=heanet hosteurope hawaii
-for pattern in $VBOXEN_PACKAGE_MIRROR_PATTERNS; do
+for pattern in $VBOXN_PACKAGE_MIRROR_PATTERNS; do
     sed -i 's/^#\(Server.*'${pattern}'.*\)/\1/g' /etc/pacman.d/mirrorlist
 done
 
 # set a fallback package mirror
-echo "Server = ${VBOXEN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
+echo "Server = ${VBOXN_PACKAGE_MIRROR:-ftp://ftp.archlinux.org/\$repo/os/\$arch}" >> /etc/pacman.d/mirrorlist
 
 # no idea
 rm -f /usr/bin/tzselect /usr/sbin/zdump /usr/sbin/zic

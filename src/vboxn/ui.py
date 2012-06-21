@@ -6,7 +6,7 @@ from cliff.app import App
 from cliff.command import Command
 from cliff.commandmanager import CommandManager, EntryPointWrapper
 
-from vboxen.utils import import_object
+from vboxn.utils import import_object
 
 def commands_from_module(m):
     if isinstance(m, basestring):
@@ -20,7 +20,7 @@ def commands_from_module(m):
 class UICommandManager(CommandManager):
 
     def _load_commands(self):
-        d = commands_from_module('vboxen.commands')
+        d = commands_from_module('vboxn.commands')
         self.commands.update(d)
 
 class UI(App):
@@ -31,7 +31,7 @@ class UI(App):
         super(UI, self).__init__(
             description='Command line interaction with VirtualBox machine images.',
             version='0.1',
-            command_manager=UICommandManager('vboxen.ui'),
+            command_manager=UICommandManager('vboxn.ui'),
             )
 
     def interact(self):

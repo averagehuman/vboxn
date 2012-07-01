@@ -76,6 +76,7 @@ vm_ostype_label=`echo "$vm_ostype" | tr '[:upper:]' '[:lower:]' | sed "s/_64$/64
 vm_hostonlyadapter_ip="192.168.44.1"
 vm_hostonlyadapter_mask="255.255.255.0"
 vm_ip_address="192.168.44.100"
+vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "no"; else echo "yes"; fi)
 
 kickstart="yes"
 kickstart_file=""
@@ -109,14 +110,18 @@ fi
 if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
-        kickstart_file="https://raw.github.com/devopsni/vboxn/master/share/archlinux/latest/aif-generic.cfg"
-        postinstall_configure_root="https://raw.github.com/devopsni/vboxn/master/share/archlinux/latest/postinstall"
+        kickstart_file="https://raw.github.com/podados/vboxn/master/share/archlinux/latest/aif-generic.cfg"
+        postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/archlinux/latest/postinstall"
         postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
-        vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
-        kickstart_file="https://raw.github.com/devopsni/vboxn/master/share/ubuntu/12.04/preseed.cfg"
-        postinstall_configure_root="https://raw.github.com/devopsni/vboxn/master/share/ubuntu/12.04/postinstall"
-        postinstall_configure_files="base.sh vagrant.sh"
+        if [ "$vm_pae" = "yes" ] then
+            vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
+        else
+            vm_source_iso_file="http://archive.ubuntu.com/ubuntu/dists/precise/main/installer-i386/current/images/netboot/non-pae/mini.iso"
+        fi
+        kickstart_file="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/preseed.cfg"
+        postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/postinstall"
+        postinstall_configure_files="base.sh finally.sh"
     fi
 fi
 
@@ -180,8 +185,9 @@ fi
 #------------------------------------------------------------------------------
 # Support for adding property values as command line args (requires Python)
 #
-# The somersaults here are to deal with spaces in the passed in values, though
-# the spaces must still be backslash-escaped, eg.
+# The somersaults here are to deal with spaces in the passed in values (and I
+# don't know how to handle this in Bash natively), though the spaces must still
+# be backslash-escaped, eg.
 #
 #    $ ${script} testbox0 archlinux auto postinstall=no vm_option="has\ spaces"
 #
@@ -233,6 +239,10 @@ if [ -n "`echo $vm_source_iso_file | grep '^http[s]\?\|^ftp://'`" ];then
     # downloads are tagged with a truncated md5 sum of the url
     vm_source_iso_target="${vm_basefolder}/${vm_ostype_label}-install-image-`echo $vm_source_iso_file | md5sum | cut -b 1-16`.iso"
     if [ ! -f "$vm_source_iso_target" ]; then
+        targetdir=$(dirname $vm_source_iso_target)
+        if [ ! -d $targetdir ]; then
+            mkdir -p $targetdir
+        fi
         wget --no-check-certificate $vm_source_iso_file -O "$vm_source_iso_target"
         if [ $? -ne 0 ]; then
             echo "Error: couldn't download file $vm_source_iso_target"
@@ -370,6 +380,9 @@ VBoxManage modifyvm "$vm" --boot1 dvd --boot2 disk --boot3 none
 
 # set acpi
 VBoxManage modifyvm "$vm" --acpi on
+
+# set pae
+VBoxManage modifyvm "$vm" --pae $vm_pae
 
 # network interface - nat for the outside world
 VBoxManage modifyvm "$vm" --nic1 nat
@@ -706,6 +719,8 @@ case "$vm_ostype" in
         #enter
         #pause 20
 
+    ;;
+    Ubuntu*)
     ;;
 esac
 

@@ -76,7 +76,7 @@ vm_ostype_label=`echo "$vm_ostype" | tr '[:upper:]' '[:lower:]' | sed "s/_64$/64
 vm_hostonlyadapter_ip="192.168.44.1"
 vm_hostonlyadapter_mask="255.255.255.0"
 vm_ip_address="192.168.44.100"
-vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "no"; else echo "yes"; fi)
+vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "off"; else echo "on"; fi)
 
 kickstart="yes"
 kickstart_file=""
@@ -114,7 +114,7 @@ if [ "$vm_source_iso_file" = "auto" ]; then
         postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/archlinux/latest/postinstall"
         postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
-        if [ "$vm_pae" = "yes" ] then
+        if [ "$vm_pae" = "on" ]; then
             vm_source_iso_file="http://www.ubuntu.com/start-download?distro=server&bits=32&release=12.04"
         else
             vm_source_iso_file="http://archive.ubuntu.com/ubuntu/dists/precise/main/installer-i386/current/images/netboot/non-pae/mini.iso"

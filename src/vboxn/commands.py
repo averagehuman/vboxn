@@ -30,7 +30,7 @@ class Destroy(VBoxManageCommandBase):
     """
 
     @assert_vm_exists
-    def run(self, *parsed_args):
+    def take_action(self, *parsed_args):
         client.destroy_vm(self.vm_name)
 
 class List(Command):
@@ -49,7 +49,7 @@ class List(Command):
         )
         return parser
 
-    def run(self, *parsed_args):
+    def take_action(self, *parsed_args):
         for line in client.list_objects(parsed_args[0].objtype):
             sys.stdout.write(line+'\n')
 

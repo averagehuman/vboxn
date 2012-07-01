@@ -1,6 +1,7 @@
 
 import logging
 import sys
+import inspect
 
 from cliff.app import App
 from cliff.command import Command
@@ -8,12 +9,18 @@ from cliff.commandmanager import CommandManager, EntryPointWrapper
 
 from vboxn.utils import import_object
 
+def iscommandclass(obj):
+    return obj is not Command \
+            and inspect.isclass(obj) \
+            and hasattr(obj, '__dict__') \
+            and 'take_action' in obj.__dict__
+
 def commands_from_module(m):
     if isinstance(m, basestring):
         m = import_object(m)
     d = {}
     for k, v in m.__dict__.items():
-        if hasattr(v, 'run') and v is not Command:
+        if iscommandclass(v):
             d[k.lower()] = EntryPointWrapper(k.lower(), v)
     return d
 

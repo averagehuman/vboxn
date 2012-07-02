@@ -78,6 +78,7 @@ vm_hostonlyadapter_mask="255.255.255.0"
 vm_ip_address="192.168.44.100"
 vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "off"; else echo "on"; fi)
 vm_hwvirtex="on"
+vm_hdd_bus="sata"
 
 kickstart="yes"
 kickstart_file=""
@@ -312,6 +313,15 @@ configure_hostonly_adapter () {
     fi
 }
 
+http () {
+    length=$(wc -c < $1)
+    echo -e "HTTP/1.0 200 OK\r"
+    echo -e "Content-Type: text/plain\r"
+    echo -e "Content-Length: $length\r"
+    echo -e "\r"
+    echo "$(cat $1)"
+}
+
 canonical_os_name
 
 vm_disk_format=`echo $vm_disk_format | tr '[:lower:]' '[:upper:]'`
@@ -407,12 +417,18 @@ fi
 
 # create and attach hard disk drive
 VBoxManage createhd --filename "$vm_disk_filename" --size $vm_disk_size --format $vm_disk_format
-VBoxManage storagectl "$vm" --name "SATA Controller" --add sata --hostiocache $vm_disk_hostiocache --sataportcount 1
-VBoxManage storageattach "$vm" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "$vm_disk_filename"
+if [ "$vm_hdd_bus" = "sata" ]; then
+    VBoxManage storagectl "$vm" --name "Disk Controller" --add sata --hostiocache $vm_disk_hostiocache --sataportcount 1
+elif [ "$vm_hdd_bus" = "ide" ]; then
+    VBoxManage storagectl "$vm" --name "Disk Controller" --add sata --hostiocache $vm_disk_hostiocache --sataideemulation1 1 --sataportcount 1
+else
+    VBoxManage storagectl "$vm" --name "Disk Controller" --add $vm_hdd_bus --hostiocache $vm_disk_hostiocache
+fi
+VBoxManage storageattach "$vm" --storagectl "Disk Controller" --port 0 --device 0 --type hdd --medium "$vm_disk_filename"
 
 # create and attach dvd drive
-VBoxManage storagectl "$vm" --name "IDE Controller" --add ide
-VBoxManage storageattach "$vm" --storagectl "IDE Controller" --type dvddrive --port 0 --device 0 --medium "$vm_source_iso_file"
+VBoxManage storagectl "$vm" --name "DVD IDE Controller" --add ide
+VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium "$vm_source_iso_file"
 
 VBoxManage startvm "$vm"
 
@@ -423,7 +439,11 @@ VBoxManage startvm "$vm"
 ###############################################################################
 
 kickstart_file_final="${vm_root}/vboxn.kickstart"
+kickstart_file_header="${kickstart_file_final}.header"
+kickstart_file_tmp="${kickstart_file_final}.tmp"
 postinstall_file_final="${vm_root}/vboxn.postinstall"
+postinstall_file_header="${postinstall_file_final}.header"
+postinstall_file_tmp="${postinstall_file_final}.tmp"
 
 if [ -e "$kickstart_file_final" ] && [ "$kickstart_file_final" != "${kickstart_file}" ]; then
     rm -rf $kickstart_file_final
@@ -446,9 +466,17 @@ if [ "$kickstart" = "yes" ]; then
     fi
     # background a one shot web server whose job it is to serve the kickstart
     # file to the guest
+    length=$(wc -c < $kickstart_file_final)
+    echo "HTTP/1.0 200 OK\r" > $kickstart_file_header
+    echo "Content-Type: text/plain\r" >> $kickstart_file_header
+    echo "Content-Length: $length\r" >> $kickstart_file_header
+    echo "\r" >> $kickstart_file_header
+    cat $kickstart_file_header $kickstart_file_final > $kickstart_file_tmp
+    mv $kickstart_file_tmp $kickstart_file_final
+    rm $kickstart_file_header
     kickstart_listen_host=`echo $kickstart_listen_on | sed "s/^\(.*\):.*/\1/"`
     kickstart_listen_port=`echo $kickstart_listen_on | sed "s/^.*:\(.*\)/\1/"`
-    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $kickstart_file_final; } | nc -l $kickstart_listen_host $kickstart_listen_port &
+    cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
     echo "Launched kickstart listener."
 fi
 
@@ -578,15 +606,46 @@ char2code () (
     if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/-/$kminus/g"`;else echo $code && return;fi
 )
 
+char3code () {
+    case $1 in
+        0)
+            echo $k0;;
+        1)
+            echo $k1;;
+        2)
+            echo $k2;;
+        3)
+            echo $k3;;
+        4)
+            echo $k4;;
+        5)
+            echo $k5;;
+        6)
+            echo $k6;;
+        7)
+            echo $k7;;
+        8)
+            echo $k8;;
+        9)
+            echo $k9;;
+        .)
+            echo $kperiod;;
+        :)
+            echo $kcolon;;
+        -)
+            echo $kminus;;
+    esac
+}
+
 putscancode () {
     VBoxManage controlvm "$vm" keyboardputscancode $@
 }
 
-putchars () (
+putchars () {
     s=`echo $1 | sed "s/\(.\).*/\1/"`
     t=`echo $1 | sed "s/.\(.*\)/\1/"`
     if [ -n "$s" ]; then
-        code=`char2code $s`
+        code=`char3code $s`
         if [ -z "$code" ]; then
             echo "ERROR: couldn't convert $s to scan code"
             exit 1
@@ -597,7 +656,7 @@ putchars () (
             putchars $t
         fi
     fi
-)
+}
 
 enter () {
     putscancode $kEnter
@@ -629,7 +688,7 @@ detach_iso_image () {
     # boot from disk
     VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
 
-    VBoxManage storageattach "$vm" --storagectl "IDE Controller" --type dvddrive --port 0 --device 0 --medium none
+    VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium none
     #deregister the dvd image
     VBoxManage closemedium dvd $vm_source_iso_file
 }
@@ -735,14 +794,48 @@ case "$vm_ostype" in
             esc
             esc
             enter
-            pause 20
+            pause 10
             putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl
             putscancode $kforwardslash $kv $km $kl $ki $kn $ku $kz && space
-            putscancode $kn $ko $ka $kp $ki $kc && space $kp $kr $ke $ks $ke $ke $kd
+            putscancode $kn $ko $ka $kp $ki $kc && space
+            putscancode $kp $kr $ke $ks $ke $ke $kd
             putscancode $kforwardslash $ku $kr $kl $kequals
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
             putchars "$kickstart_listen_host:$kickstart_listen_port"
+            putscancode $kforwardslash $kp $kr $ke $ks $ke $ke $kd
+            putscancode $kperiod $kc $kf $kg && space
+            putscancode $kd $ke $kb $ki $ka $kn $kminus $ki $kn $ks $kt $ka $kl $kl $ke $kr
+            putscancode $kequals $ke $kn $kunderscore $kU $kS && space
+            putscancode $ka $ku $kt $ko && space
+            putscancode $kl $ko $kc $ka $kl $ke $kequals $ke $kn $kunderscore $kU $kS && space
+            putscancode $kk $kb $kd $kminus $kc $kh $ko $ko $ks $ke $kr
+            putscancode $kforwardslash $km $ke $kt $kh $ko $kd $kequals
+            putscancode $ku $ks && space
+            putscancode $kh $ko $ks $kt $kn $ka $km $ke $kequals
+            putscancode $kv $kb $ko $kx $kn && space
+            putscancode $kf $kb $kequals $kf $ka $kl $ks $ke && space
+            putscancode $kd $ke $kb $kc $ko $kn $kf $kforwardslash
+            putscancode $kf $kr $ko $kn $kt $ke $kn $kd $kequals
+            putscancode $kn $ko $kn $ki $kn $kt $ke $kr $ka $kc $kt $ki $kv $ke && space
+            putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
+            putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
+            putscancode $kl $ka $ky $ko $ku $kt $kequals $kU $kS $kA && space
+            putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
+            putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
+            putscancode $kv $ka $kr $ki $ka $kn $kt $kequals $kU $kS $kA && space
+            putscancode $kn $ke $kt $kc $kf $kg $kforwardslash
+            putscancode $kc $kh $ko $ko $ks $ke $kunderscore
+            putscancode $ki $kn $kt $ke $kr $kf $ka $kc $ke
+            putscancode $kequals $ke $kt $kh $k0 && space
+            putscancode $kc $ko $kn $ks $ko $kl $ke $kminus $ks $ke $kt $ku $kp $kforwardslash
+            putscancode $ka $ks $kk $kunderscore $kd $ke $kt $ke $kc $kt $kequals
+            putscancode $kf $ka $kl $ks $ke && space
+            putscancode $ki $kn $ki $kt $kr $kd $kequals
+            putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl $kforwardslash
+            putscancode $ki $kn $ki $kt $kr $kd $kperiod $kg $kz && space
+            putscancode $kminus $kminus
             enter
+            wait
             pause ${kickstart_wait:-600}
 
             # shutdown
@@ -763,31 +856,6 @@ case "$vm_ostype" in
 
         fi
 
-        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
-
-            # login
-            echo "login as root"
-            putscancode $kr $ko $ko $kt && enter
-            pause 20
-
-            # fetch postinstall script
-            echo "wget -t 1 http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
-            putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1 && space
-            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$postinstall_listen_host:$postinstall_listen_port" && space
-            putscancode $kminus $kO && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-            pause 10
-
-            # run postinstall script
-            echo "sh postinstall.sh"
-            putscancode $ks $kh && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-            #pause ${postinstall_wait:-600}
-        fi
 
     ;;
 esac

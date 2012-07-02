@@ -77,6 +77,7 @@ vm_hostonlyadapter_ip="192.168.44.1"
 vm_hostonlyadapter_mask="255.255.255.0"
 vm_ip_address="192.168.44.100"
 vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "off"; else echo "on"; fi)
+vm_hwvirtex="on"
 
 kickstart="yes"
 kickstart_file=""
@@ -356,7 +357,7 @@ if [ $? -eq 0 ]; then
         VBoxManage unregistervm $1 --delete
         echo "Deletion complete."
     else
-        echo "A machine with that name exists. Remove it with 'VBoxManage unregistervm $vm --delete'"; exit 1
+        echo "A machine with that name exists. Remove it with 'vboxn destroy $vm'"; exit 1
     fi
 fi
 
@@ -383,6 +384,9 @@ VBoxManage modifyvm "$vm" --acpi on
 
 # set pae
 VBoxManage modifyvm "$vm" --pae $vm_pae
+
+# set hardware virtualization
+VBoxManage modifyvm "$vm" --hwvirtex $vm_hwvirtex
 
 # network interface - nat for the outside world
 VBoxManage modifyvm "$vm" --nic1 nat
@@ -603,6 +607,10 @@ space () {
     putscancode $kSpacebar
 }
 
+esc () {
+    putscancode $kEsc
+}
+
 ekko () {
     putscancode $ke $kc $kh $ko $kSpacebar $@
 }
@@ -721,6 +729,66 @@ case "$vm_ostype" in
 
     ;;
     Ubuntu*)
+        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
+
+            echo "Beginning Ubuntu install."
+            esc
+            esc
+            enter
+            pause 20
+            putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl
+            putscancode $kforwardslash $kv $km $kl $ki $kn $ku $kz && space
+            putscancode $kn $ko $ka $kp $ki $kc && space $kp $kr $ke $ks $ke $ke $kd
+            putscancode $kforwardslash $ku $kr $kl $kequals
+            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+            putchars "$kickstart_listen_host:$kickstart_listen_port"
+            enter
+            pause ${kickstart_wait:-600}
+
+            # shutdown
+            echo "stopping vm"
+            putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
+            putscancode $kminus $kh && space && putscancode $kn $ko $kw
+            enter
+            pause 60
+
+            # ensure boot from disk
+            echo "detaching dvd medium"
+            detach_iso_image 
+
+            # startvm
+            echo "restarting VM $vm"
+            VBoxManage startvm "$vm"
+            pause 60
+
+        fi
+
+        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
+
+            # login
+            echo "login as root"
+            putscancode $kr $ko $ko $kt && enter
+            pause 20
+
+            # fetch postinstall script
+            echo "wget -t 1 http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
+            putscancode $kw $kg $ke $kt && space
+            putscancode $kminus $kt && space && putscancode $k1 && space
+            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+            putchars "$postinstall_listen_host:$postinstall_listen_port" && space
+            putscancode $kminus $kO && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
+            pause 10
+
+            # run postinstall script
+            echo "sh postinstall.sh"
+            putscancode $ks $kh && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
+            #pause ${postinstall_wait:-600}
+        fi
+
     ;;
 esac
 

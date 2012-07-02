@@ -313,15 +313,6 @@ configure_hostonly_adapter () {
     fi
 }
 
-http () {
-    length=$(wc -c < $1)
-    echo -e "HTTP/1.0 200 OK\r"
-    echo -e "Content-Type: text/plain\r"
-    echo -e "Content-Length: $length\r"
-    echo -e "\r"
-    echo "$(cat $1)"
-}
-
 canonical_os_name
 
 vm_disk_format=`echo $vm_disk_format | tr '[:lower:]' '[:upper:]'`
@@ -779,13 +770,6 @@ case "$vm_ostype" in
             #pause ${postinstall_wait:-600}
         fi
 
-        # shutdown
-        #echo "shutdown -h now"
-        #putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
-        #putscancode $kminus $kh && space && putscancode $kn $ko $kw
-        #enter
-        #pause 20
-
     ;;
     Ubuntu*)
         if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
@@ -836,13 +820,20 @@ case "$vm_ostype" in
             putscancode $kminus $kminus
             enter
             wait
-            pause ${kickstart_wait:-600}
+            pause ${kickstart_wait:-1200}
 
-            # shutdown
+            # the automated install will reboot to a login prompt
+            # login (as vagrant), shutdown and detach DVD controller
+            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
+            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
+            pause 10
             echo "stopping vm"
+            putscancode $ks $ku $kd $ko && space
             putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
             putscancode $kminus $kh && space && putscancode $kn $ko $kw
             enter
+            pause 10
+            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
             pause 60
 
             # ensure boot from disk
@@ -856,14 +847,6 @@ case "$vm_ostype" in
 
         fi
 
-
     ;;
 esac
-
-###############################################################################
-#
-# Finalize
-#
-###############################################################################
-
 

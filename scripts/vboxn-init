@@ -124,7 +124,7 @@ if [ "$vm_source_iso_file" = "auto" ]; then
         fi
         kickstart_file="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/preseed.cfg"
         postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/postinstall"
-        postinstall_configure_files="base.sh finally.sh"
+        postinstall_configure_files="base.sh python2-libs.sh vagrant.sh finally.sh"
     fi
 fi
 
@@ -823,17 +823,17 @@ case "$vm_ostype" in
             pause ${kickstart_wait:-1500}
 
             # the automated install will reboot to a login prompt
-            # login (as vagrant), shutdown and detach DVD controller
-            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
-            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
+            # login (as vboxn), shutdown and detach DVD controller
+            putscancode $kv $kb $ko $kx $kn && enter
+            putscancode $kv $kb $ko $kx $kn && enter
             pause 10
+
             echo "stopping vm"
             putscancode $ks $ku $kd $ko && space
             putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
             putscancode $kminus $kh && space && putscancode $kn $ko $kw
             enter
-            pause 10
-            putscancode $kv $ka $kg $kr $ka $kn $kt && enter
+            putscancode $kv $kb $ko $kx $kn && enter
             pause 60
 
             # ensure boot from disk
@@ -845,6 +845,36 @@ case "$vm_ostype" in
             VBoxManage startvm "$vm"
             pause 60
 
+        fi
+        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
+
+            cat $postinstall_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+            echo "Launched postinstall listener."
+
+            # login
+            putscancode $kv $kb $ko $kx $kn && enter
+            putscancode $kv $kb $ko $kx $kn && enter
+
+            # fetch postinstall script
+            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O postinstall.sh"
+            putscancode $ks $ku $kd $ko && space
+            putscancode $kw $kg $ke $kt && space
+            putscancode $kminus $kt && space && putscancode $k1 && space
+            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
+            putscancode $kminus $kO && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
+            putscancode $kv $kb $ko $kx $kn && enter
+            wait
+            pause 10
+
+            # run postinstall script
+            echo "sh postinstall.sh"
+            putscancode $ks $ku $kd $ko && space
+            putscancode $ks $kh && space
+            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+            enter
         fi
 
     ;;

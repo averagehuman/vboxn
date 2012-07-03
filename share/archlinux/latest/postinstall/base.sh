@@ -1,10 +1,30 @@
 
 
-# root password
+# root password, default=vboxn
 passwd<<EOF
 ${VBOXN_ROOT_PASSWORD:=vboxn}
 ${VBOXN_ROOT_PASSWORD}
 EOF
+
+# create SSH user 
+if [ -n "$VBOXN_SSH_USER" ]; then
+    useradd -m -G wheel -r $VBOXN_SSH_USER
+    passwd -d $VBOXN_SSH_USER
+passwd $VBOXN_SSH_USER<<EOF
+vboxn
+vboxn
+EOF
+fi
+
+# create SSH user public key
+if [ -n "$VBOXN_SSH_KEY" ]; then
+    mkdir /home/${VBOXN_SSH_USER}/.ssh
+    chmod 700 /home/${VBOXN_SSH_USER}/.ssh
+    echo $VBOXN_SSH_KEY > /home/${VBOXN_SSH_USER}/.ssh/authorized_keys
+    chmod 600 /home/${VBOXN_SSH_USER}/.ssh/authorized_keys
+    chown -R vagrant /home/${VBOXN_SSH_USER}/.ssh
+fi
+
 
 # sudo setup
 # note: do not use tabs here, it autocompletes and borks the sudoers file

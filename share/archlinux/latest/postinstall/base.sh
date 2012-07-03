@@ -22,7 +22,7 @@ if [ -n "$VBOXN_SSH_KEY" ]; then
     chmod 700 /home/${VBOXN_SSH_USER}/.ssh
     echo $VBOXN_SSH_KEY > /home/${VBOXN_SSH_USER}/.ssh/authorized_keys
     chmod 600 /home/${VBOXN_SSH_USER}/.ssh/authorized_keys
-    chown -R vagrant /home/${VBOXN_SSH_USER}/.ssh
+    chown -R ${VBOXN_SSH_USER}} /home/${VBOXN_SSH_USER}/.ssh
 fi
 
 

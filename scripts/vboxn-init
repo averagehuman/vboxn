@@ -474,6 +474,8 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         echo -n "\"" >> $postinstall_file_final
         echo "" >> $postinstall_file_final
     fi
+    echo 'VBOX_VERSION="'$(VBoxManage -v | sed "s/r.*$//")'"' >> $postinstall_file_final
+    echo "" >> $postinstall_file_final
     # write out environment variables to local postinstall file
     if [ -n "$postinstall_environment_file" ]; then
         if [ -n "`echo $postinstall_environment_file | grep '^http[s]\?\|^ftp://'`" ];then

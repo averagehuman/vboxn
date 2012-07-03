@@ -23,6 +23,30 @@ def assert_vm_exists(method):
         return method(self, *parsed_args)
     return run
 
+class Start(VBoxManageCommandBase):
+    """Start (power up) an existing VirtualBox machine with GUI frontend"""
+    @assert_vm_exists
+    def take_action(self, *parsed_args):
+        client.start_vm(self.vm_name)
+
+class Headless(VBoxManageCommandBase):
+    """Start (power up) an existing VirtualBox machine with no frontend"""
+
+    def get_parser(self, prog_name):
+        parser = super(Headless, self).get_parser(prog_name)
+        parser.add_argument('--vrde', action='store_true', help="enable remote desktop server")
+        return parser
+
+    @assert_vm_exists
+    def take_action(self, *parsed_args):
+        if self.vrde:
+            # enable if the machine has the vrde setting selected
+            vrde='config'
+        else:
+            # else, default is off
+            vrde='off'
+        client.start_headless_vm(self.vm_name, vrde)
+
 class Destroy(VBoxManageCommandBase):
     """Unregister a VirtualBox machine and delete all attached disks.
 

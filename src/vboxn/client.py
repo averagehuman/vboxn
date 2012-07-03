@@ -53,6 +53,16 @@ def list_objects(objtype):
     ]) or ''
     return lines.splitlines()
 
+def start_vm(name):
+    return call([
+        'VBoxManage', 'startvm', name,
+    ])
+
+def start_headless_vm(name, vrde='config'):
+    return call([
+        'VBoxHeadless', '--startvm', name, '--vrde=%s' % vrde
+    ])
+
 def destroy_vm(name):
     return call([
         'VBoxManage', 'unregistervm', name, '--delete',

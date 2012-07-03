@@ -79,18 +79,19 @@ vm_ip_address="192.168.44.100"
 vm_pae=$(if [ -z "$(grep -i PAE /proc/cpuinfo)" ]; then echo "off"; else echo "on"; fi)
 vm_hwvirtex="on"
 vm_hdd_bus="sata"
+vm_ssh_user="$(whoami)"
+vm_ssh_key="${HOME:-.}/.ssh/id_rsa.pub"
 
 kickstart="yes"
 kickstart_file=""
 kickstart_listen_on="192.168.1.100:8585"
-kickstart_wait=600
+kickstart_wait=
 
 postinstall="yes"
 postinstall_environment_file=""
 postinstall_configure_root=""
 postintstall_configure_files=""
-postinstall_listen_on="192.168.1.100:8586"
-postinstall_wait=600
+postinstall_wait=
 
 ts=`date +%Y%m%d%H%M%S`
 
@@ -319,6 +320,8 @@ vm_disk_format=`echo $vm_disk_format | tr '[:lower:]' '[:upper:]'`
 vm_disk_format_lower=`echo $vm_disk_format | tr '[:upper:]' '[:lower:]'`
 vm_disk_filename="$vm_basefolder/$vm/disk0.$vm_disk_format_lower"
 vm_disk_size=`echo "2^10*$vm_disk_size_in_gigabytes" | bc`
+kickstart_listen_host=`echo $kickstart_listen_on | sed "s/^\(.*\):.*/\1/"`
+kickstart_listen_port=`echo $kickstart_listen_on | sed "s/^.*:\(.*\)/\1/"`
 if [ -z "$vm_root" ]; then
     vm_root="${vm_basefolder}/${vm}"
 fi
@@ -430,10 +433,8 @@ VBoxManage startvm "$vm"
 ###############################################################################
 
 kickstart_file_final="${vm_root}/vboxn.kickstart"
-kickstart_file_header="${kickstart_file_final}.header"
 kickstart_file_tmp="${kickstart_file_final}.tmp"
 postinstall_file_final="${vm_root}/vboxn.postinstall"
-postinstall_file_header="${postinstall_file_final}.header"
 postinstall_file_tmp="${postinstall_file_final}.tmp"
 
 if [ -e "$kickstart_file_final" ] && [ "$kickstart_file_final" != "${kickstart_file}" ]; then
@@ -455,35 +456,36 @@ if [ "$kickstart" = "yes" ]; then
         # copy to local file
         cp $kickstart_file $kickstart_file_final
     fi
-    # background a one shot web server whose job it is to serve the kickstart
-    # file to the guest
     length=$(wc -c < $kickstart_file_final)
-    echo "HTTP/1.0 200 OK\r" > $kickstart_file_header
-    echo "Content-Type: text/plain\r" >> $kickstart_file_header
-    echo "Content-Length: $length\r" >> $kickstart_file_header
-    echo "\r" >> $kickstart_file_header
-    cat $kickstart_file_header $kickstart_file_final > $kickstart_file_tmp
+    echo "HTTP/1.0 200 OK\r" > $kickstart_file_tmp
+    echo "Content-Type: text/plain\r" >> $kickstart_file_tmp
+    echo "Content-Length: $length\r" >> $kickstart_file_tmp
+    echo "\r" >> $kickstart_file_tmp
+    cat $kickstart_file_final >> $kickstart_file_tmp
     mv $kickstart_file_tmp $kickstart_file_final
-    rm $kickstart_file_header
-    kickstart_listen_host=`echo $kickstart_listen_on | sed "s/^\(.*\):.*/\1/"`
-    kickstart_listen_port=`echo $kickstart_listen_on | sed "s/^.*:\(.*\)/\1/"`
-    cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-    echo "Launched kickstart listener."
 fi
 
 if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
+    echo "" > $postinstall_file_final
+    if [ -n "$vm_ssh_user" ] && [ -f "$vm_ssh_key" ]; then
+        echo "VBOXN_SSH_USER=\"$vm_ssh_user\"" >> $postinstall_file_final
+        echo -n "VBOXN_SSH_KEY=\"" >> $postinstall_file_final
+        cat $vm_ssh_key >> $postinstall_file_final
+        echo -n "\"" >> $postinstall_file_final
+        echo "" >> $postinstall_file_final
+    fi
     # write out environment variables to local postinstall file
     if [ -n "$postinstall_environment_file" ]; then
         if [ -n "`echo $postinstall_environment_file | grep '^http[s]\?\|^ftp://'`" ];then
             # it's a url
-            wget --no-check-certificate $postinstall_environment_file -O $postinstall_file_final
+            wget --no-check-certificate -O - $postinstall_environment_file >> $postinstall_file_final
             if [ $? -ne 0 ]; then
                 echo "Error: couldn't download file $postinstall_environment_file"
                 exit 1
             fi
         else
             # copy to local file
-            cp $postinstall_environment_file $postinstall_file_final
+            cat $postinstall_environment_file >> $postinstall_file_final
         fi
     fi
     if [ ! -f $postinstall_file_final ]; then
@@ -524,12 +526,13 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         fi
         echo $divide >> $postinstall_file_final
     done
-    # background a one shot web server whose job it is to serve the
-    # postinstall file to the guest
-    postinstall_listen_host=`echo $postinstall_listen_on | sed "s/^\(.*\):.*/\1/"`
-    postinstall_listen_port=`echo $postinstall_listen_on | sed "s/^.*:\(.*\)/\1/"`
-    { echo -ne "HTTP/1.0 200 OK\r\n\r\n"; cat $postinstall_file_final; } | nc -l $postinstall_listen_host $postinstall_listen_port &
-    echo "Launched postinstall listener."
+    length=$(wc -c < $postinstall_file_final)
+    echo "HTTP/1.0 200 OK\r" > $postinstall_file_tmp
+    echo "Content-Type: text/plain\r" >> $postinstall_file_tmp
+    echo "Content-Length: $length\r" >> $postinstall_file_tmp
+    echo "\r" >> $postinstall_file_tmp
+    cat $postinstall_file_final >> $postinstall_file_tmp
+    mv $postinstall_file_tmp $postinstall_file_final
 fi
 
 k0='0b 8b';k1='02 82';k2='03 83';k3='04 84';k4='05 85';
@@ -580,24 +583,7 @@ kReturn='1c 9c'
 kEsc='01 81'
 kTab='0f 8f'
 
-char2code () (
-    code=`echo "$1" | sed "s/0/$k0/g"`
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/0/$k0/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/1/$k1/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/2/$k2/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/3/$k3/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/4/$k4/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/5/$k5/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/6/$k6/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/7/$k7/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/8/$k8/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/9/$k9/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/\./$kperiod/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/:/$kcolon/g"`;else echo $code && return;fi
-    if [ "$code" = "$1" ]; then code=`echo "$1" | sed "s/-/$kminus/g"`;else echo $code && return;fi
-)
-
-char3code () {
+char2code () {
     case $1 in
         0)
             echo $k0;;
@@ -636,7 +622,7 @@ putchars () {
     s=`echo $1 | sed "s/\(.\).*/\1/"`
     t=`echo $1 | sed "s/.\(.*\)/\1/"`
     if [ -n "$s" ]; then
-        code=`char3code $s`
+        code=`char2code $s`
         if [ -z "$code" ]; then
             echo "ERROR: couldn't convert $s to scan code"
             exit 1
@@ -696,6 +682,9 @@ case "$vm_ostype" in
 
         if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
 
+            cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+            echo "Launched aif.cfg listener."
+
             # bring up network
             echo "dhcpcd eth0"
             putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
@@ -710,6 +699,7 @@ case "$vm_ostype" in
             putchars "$kickstart_listen_host:$kickstart_listen_port" && space
             putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
             enter
+            wait
             pause 10
 
             # run kickstart script
@@ -740,6 +730,9 @@ case "$vm_ostype" in
 
         if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
 
+            cat $postinstall_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+            echo "Launched postinstall listener."
+
             # login
             echo "login as root"
             putscancode $kr $ko $ko $kt && enter
@@ -752,14 +745,15 @@ case "$vm_ostype" in
             pause 30
 
             # fetch postinstall script
-            echo "wget -t 1 http://${postinstall_listen_host}:${postinstall_listen_port} -O postinstall.sh"
+            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O postinstall.sh"
             putscancode $kw $kg $ke $kt && space
             putscancode $kminus $kt && space && putscancode $k1 && space
             putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$postinstall_listen_host:$postinstall_listen_port" && space
+            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
             putscancode $kminus $kO && space
             putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
             enter
+            wait
             pause 10
 
             # run postinstall script
@@ -773,6 +767,9 @@ case "$vm_ostype" in
     ;;
     Ubuntu*)
         if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
+
+            cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+            echo "Launched preseed.cfg listener."
 
             echo "Beginning Ubuntu install."
             esc
@@ -820,7 +817,8 @@ case "$vm_ostype" in
             putscancode $kminus $kminus
             enter
             wait
-            pause ${kickstart_wait:-1200}
+            echo "Installing, this may take a while."
+            pause ${kickstart_wait:-1500}
 
             # the automated install will reboot to a login prompt
             # login (as vagrant), shutdown and detach DVD controller

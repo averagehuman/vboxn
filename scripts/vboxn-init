@@ -435,7 +435,6 @@ VBoxManage startvm "$vm"
 kickstart_file_final="${vm_root}/vboxn.kickstart"
 kickstart_file_tmp="${kickstart_file_final}.tmp"
 postinstall_file_final="${vm_root}/vboxn.postinstall"
-postinstall_file_tmp="${postinstall_file_final}.tmp"
 
 if [ -e "$kickstart_file_final" ] && [ "$kickstart_file_final" != "${kickstart_file}" ]; then
     rm -rf $kickstart_file_final
@@ -528,355 +527,112 @@ if [ "$postinstall" = "yes" ] && [ -n "$postinstall_configure_files" ]; then
         fi
         echo $divide >> $postinstall_file_final
     done
-    length=$(wc -c < $postinstall_file_final)
-    echo "HTTP/1.0 200 OK\r" > $postinstall_file_tmp
-    echo "Content-Type: text/plain\r" >> $postinstall_file_tmp
-    echo "Content-Length: $length\r" >> $postinstall_file_tmp
-    echo "\r" >> $postinstall_file_tmp
-    cat $postinstall_file_final >> $postinstall_file_tmp
-    mv $postinstall_file_tmp $postinstall_file_final
 fi
 
-k0='0b 8b';k1='02 82';k2='03 83';k3='04 84';k4='05 85';
-k5='06 86';k6='07 87';k7='08 88';k8='09 89';k9='0a 8a';
+if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
+    # source scancodes constants and functions
+    . vboxn-scancodes
 
-ka='1e 9e';kb='30 b0';kc='2e ae';kd='20 a0';ke='12 92';kf='21 a1';kg='22 a2';
-kh='23 a3';ki='17 97';kj='24 a4';kk='25 a5';kl='26 a6';km='32 b2';kn='31 b1';
-ko='18 98';kp='19 99';kq='10 90';kr='13 93';ks='1f 9f';kt='14 94';ku='16 96';
-kv='2f af';kw='11 91';kx='2d ad';ky='15 95';kz='2c ac'
+    case "$vm_ostype" in
+        ArchLinux*)
 
-kA='2a 1e aa 9e';kB='2a 30 aa b0';kC='2a 2e aa ae';kD='2a 20 aa a0';
-kE='2a 12 aa';kF='2a 21 aa a1';kG='2a 22 aa a2';kH='2a 23 aa a3'
-kI='2a 17 aa';kJ='2a 24 aa a4';kK='2a 25 aa a5';kL='2a 26 aa a6';kM='2a 32 aa b2';
-kN='2a 31 aa b1';kO='2a 18 aa';kP='2a 19 aa';kQ='2a 10 aa';kR='2a 13 aa'
-kS='2a 1f aa 9f';kT='2a 14 aa';kU='2a 16 aa';kV='2a 2f aa af';kW='2a 11 aa'
-kX='2a 2d aa ad';kY='2a 15 aa';kZ='2a 2c aa ac'
-
-kcomma='33 b3'
-kfullstop='34 b4'
-kperiod="$kfullstop"
-kforwardslash='35 b5'
-kcolon='2a 27 aa a7'
-kpercent='2a 06 aa 86'
-kunderscore='2a 0c aa 8c'
-kampersand='2a 08 aa 88'
-kparenthesesopen='2a 0a aa 8a'
-kparenthesesclose='2a 0b aa 8b'
-ksemicolon='27 a7'
-kdoublequote='2a 28 aa a8'
-ksinglequote='28 a8'
-kbackslash='2b ab'
-kpipe='2a 2b aa 8b'
-ksquarebracketopen='1a 9a'
-ksquarebracketclose='1b 9b'
-klessthan='2a 33 aa b3'
-kgreaterthan='2a 34 aa b4'
-kdollar='2a 05 aa 85'
-kplus='2a 0d aa 8d'
-kminus='0c 8c'
-kequals='0d 8d'
-kasterisk='2a 09 aa 89'
-kquestionmark='2a 35 aa b5'
-kcircumflex='07 87'
-kEnter='1c 9c'
-kBackspace='0e 8e'
-kSpacebar='39 b9'
-kReturn='1c 9c'
-kEsc='01 81'
-kTab='0f 8f'
-
-char2code () {
-    case $1 in
-        0)
-            echo $k0;;
-        1)
-            echo $k1;;
-        2)
-            echo $k2;;
-        3)
-            echo $k3;;
-        4)
-            echo $k4;;
-        5)
-            echo $k5;;
-        6)
-            echo $k6;;
-        7)
-            echo $k7;;
-        8)
-            echo $k8;;
-        9)
-            echo $k9;;
-        .)
-            echo $kperiod;;
-        :)
-            echo $kcolon;;
-        -)
-            echo $kminus;;
-    esac
-}
-
-putscancode () {
-    VBoxManage controlvm "$vm" keyboardputscancode $@
-}
-
-putchars () {
-    s=`echo $1 | sed "s/\(.\).*/\1/"`
-    t=`echo $1 | sed "s/.\(.*\)/\1/"`
-    if [ -n "$s" ]; then
-        code=`char2code $s`
-        if [ -z "$code" ]; then
-            echo "ERROR: couldn't convert $s to scan code"
-            exit 1
-        else
-            putscancode $code
-        fi
-        if [ -n "$t" ]; then
-            putchars $t
-        fi
-    fi
-}
-
-enter () {
-    putscancode $kEnter
-}
-
-space () {
-    putscancode $kSpacebar
-}
-
-esc () {
-    putscancode $kEsc
-}
-
-ekko () {
-    putscancode $ke $kc $kh $ko $kSpacebar $@
-}
-
-pause () {
-    n=$(($1 / 2))
-    while [ $n -gt 0 ]; do
-        echo -n "."
-        sleep 2
-        n=$(($n - 1))
-    done
-    echo ""
-}
-
-detach_iso_image () {
-    # boot from disk
-    VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
-
-    VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium none
-    #deregister the dvd image
-    VBoxManage closemedium dvd $vm_source_iso_file
-}
-
-echo "Configuring. Please wait..."
-pause 30
-
-case "$vm_ostype" in
-    ArchLinux*)
         # <enter>  (Select first option - boot from disc)
         echo "Beginning ArchLinux install."
         enter
         pause 40
 
-        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
+        cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+        echo "Launched aif.cfg listener."
 
-            cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-            echo "Launched aif.cfg listener."
+        # bring up network
+        echo "dhcpcd eth0"
+        putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
+        enter
+        pause 30
 
-            # bring up network
-            echo "dhcpcd eth0"
-            putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
-            enter
-            pause 30
+        # fetch kickstart script
+        echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
+        putscancode $kw $kg $ke $kt && space
+        putscancode $kminus $kt && space && putscancode $k1 && space
+        putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+        putchars "$kickstart_listen_host:$kickstart_listen_port" && space
+        putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
+        enter
+        wait
+        pause 10
 
-            # fetch kickstart script
-            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O aif.cfg"
-            putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1 && space
-            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
-            putscancode $kminus $kO && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
-            enter
-            wait
-            pause 10
+        # run kickstart script
+        echo "aif -p automatic -c aif.cfg"
+        putscancode $ka $ki $kf && space && putscancode $kminus $kp && space
+        putscancode $ka $ku $kt $ko $km $ka $kt $ki $kc && space
+        putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
+        enter
 
-            # run kickstart script
-            echo "aif -p automatic -c aif.cfg"
-            putscancode $ka $ki $kf && space && putscancode $kminus $kp && space
-            putscancode $ka $ku $kt $ko $km $ka $kt $ki $kc && space
-            putscancode $kminus $kc && space && putscancode $ka $ki $kf $kperiod $kc $kf $kg
-            enter
-            pause ${kickstart_wait:-600}
+        ;;
+        Ubuntu*)
 
-            # shutdown
-            echo "stopping vm"
-            putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
-            putscancode $kminus $kh && space && putscancode $kn $ko $kw
-            enter
-            pause 60
+        cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+        echo "Launched preseed.cfg listener."
 
-            # ensure boot from disk
-            echo "detaching dvd medium"
-            detach_iso_image 
+        echo "Beginning Ubuntu install."
+        esc
+        esc
+        enter
+        pause 10
+        putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl
+        putscancode $kforwardslash $kv $km $kl $ki $kn $ku $kz && space
+        putscancode $kn $ko $ka $kp $ki $kc && space
+        putscancode $kp $kr $ke $ks $ke $ke $kd
+        putscancode $kforwardslash $ku $kr $kl $kequals
+        putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+        putchars "$kickstart_listen_host:$kickstart_listen_port"
+        putscancode $kforwardslash $kp $kr $ke $ks $ke $ke $kd
+        putscancode $kperiod $kc $kf $kg && space
+        putscancode $kd $ke $kb $ki $ka $kn $kminus $ki $kn $ks $kt $ka $kl $kl $ke $kr
+        putscancode $kequals $ke $kn $kunderscore $kU $kS && space
+        putscancode $ka $ku $kt $ko && space
+        putscancode $kl $ko $kc $ka $kl $ke $kequals $ke $kn $kunderscore $kU $kS && space
+        putscancode $kk $kb $kd $kminus $kc $kh $ko $ko $ks $ke $kr
+        putscancode $kforwardslash $km $ke $kt $kh $ko $kd $kequals
+        putscancode $ku $ks && space
+        putscancode $kh $ko $ks $kt $kn $ka $km $ke $kequals
+        putscancode $kv $kb $ko $kx $kn && space
+        putscancode $kf $kb $kequals $kf $ka $kl $ks $ke && space
+        putscancode $kd $ke $kb $kc $ko $kn $kf $kforwardslash
+        putscancode $kf $kr $ko $kn $kt $ke $kn $kd $kequals
+        putscancode $kn $ko $kn $ki $kn $kt $ke $kr $ka $kc $kt $ki $kv $ke && space
+        putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
+        putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
+        putscancode $kl $ka $ky $ko $ku $kt $kequals $kU $kS $kA && space
+        putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
+        putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
+        putscancode $kv $ka $kr $ki $ka $kn $kt $kequals $kU $kS $kA && space
+        putscancode $kn $ke $kt $kc $kf $kg $kforwardslash
+        putscancode $kc $kh $ko $ko $ks $ke $kunderscore
+        putscancode $ki $kn $kt $ke $kr $kf $ka $kc $ke
+        putscancode $kequals $ke $kt $kh $k0 && space
+        putscancode $kc $ko $kn $ks $ko $kl $ke $kminus $ks $ke $kt $ku $kp $kforwardslash
+        putscancode $ka $ks $kk $kunderscore $kd $ke $kt $ke $kc $kt $kequals
+        putscancode $kf $ka $kl $ks $ke && space
+        putscancode $ki $kn $ki $kt $kr $kd $kequals
+        putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl $kforwardslash
+        putscancode $ki $kn $ki $kt $kr $kd $kperiod $kg $kz && space
+        putscancode $kminus $kminus
+        enter
+        wait
 
-            # startvm
-            echo "restarting VM $vm"
-            VBoxManage startvm "$vm"
-            pause 60
+        ;;
+    esac
 
-        fi
+    echo "The guest OS is now being installed. Be patient and don't type in"
+    echo "the GUI window until you're sure the installation has finished."
+    echo ""
+    echo "Once complete, make sure to power off the virtual machine before"
+    echo "running the postinstall script runner (vboxn-postinstall):"
+    echo ""
+    echo "    $ vboxn-postinstall $vm"
+    echo ""
 
-        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
+fi
 
-            cat $postinstall_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-            echo "Launched postinstall listener."
-
-            # login
-            echo "login as root"
-            putscancode $kr $ko $ko $kt && enter
-            pause 20
-
-            # bring up network
-            echo "dhcpcd eth0"
-            putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
-            enter
-            pause 30
-
-            # fetch postinstall script
-            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O postinstall.sh"
-            putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1 && space
-            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
-            putscancode $kminus $kO && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-            wait
-            pause 10
-
-            # run postinstall script
-            echo "sh postinstall.sh"
-            putscancode $ks $kh && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-            #pause ${postinstall_wait:-600}
-        fi
-
-    ;;
-    Ubuntu*)
-        if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
-
-            cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-            echo "Launched preseed.cfg listener."
-
-            echo "Beginning Ubuntu install."
-            esc
-            esc
-            enter
-            pause 10
-            putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl
-            putscancode $kforwardslash $kv $km $kl $ki $kn $ku $kz && space
-            putscancode $kn $ko $ka $kp $ki $kc && space
-            putscancode $kp $kr $ke $ks $ke $ke $kd
-            putscancode $kforwardslash $ku $kr $kl $kequals
-            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$kickstart_listen_host:$kickstart_listen_port"
-            putscancode $kforwardslash $kp $kr $ke $ks $ke $ke $kd
-            putscancode $kperiod $kc $kf $kg && space
-            putscancode $kd $ke $kb $ki $ka $kn $kminus $ki $kn $ks $kt $ka $kl $kl $ke $kr
-            putscancode $kequals $ke $kn $kunderscore $kU $kS && space
-            putscancode $ka $ku $kt $ko && space
-            putscancode $kl $ko $kc $ka $kl $ke $kequals $ke $kn $kunderscore $kU $kS && space
-            putscancode $kk $kb $kd $kminus $kc $kh $ko $ko $ks $ke $kr
-            putscancode $kforwardslash $km $ke $kt $kh $ko $kd $kequals
-            putscancode $ku $ks && space
-            putscancode $kh $ko $ks $kt $kn $ka $km $ke $kequals
-            putscancode $kv $kb $ko $kx $kn && space
-            putscancode $kf $kb $kequals $kf $ka $kl $ks $ke && space
-            putscancode $kd $ke $kb $kc $ko $kn $kf $kforwardslash
-            putscancode $kf $kr $ko $kn $kt $ke $kn $kd $kequals
-            putscancode $kn $ko $kn $ki $kn $kt $ke $kr $ka $kc $kt $ki $kv $ke && space
-            putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
-            putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
-            putscancode $kl $ka $ky $ko $ku $kt $kequals $kU $kS $kA && space
-            putscancode $kk $ke $ky $kb $ko $ka $kr $kd $kminus
-            putscancode $kc $ko $kn $kf $ki $kg $ku $kr $ka $kt $ki $ko $kn $kforwardslash
-            putscancode $kv $ka $kr $ki $ka $kn $kt $kequals $kU $kS $kA && space
-            putscancode $kn $ke $kt $kc $kf $kg $kforwardslash
-            putscancode $kc $kh $ko $ko $ks $ke $kunderscore
-            putscancode $ki $kn $kt $ke $kr $kf $ka $kc $ke
-            putscancode $kequals $ke $kt $kh $k0 && space
-            putscancode $kc $ko $kn $ks $ko $kl $ke $kminus $ks $ke $kt $ku $kp $kforwardslash
-            putscancode $ka $ks $kk $kunderscore $kd $ke $kt $ke $kc $kt $kequals
-            putscancode $kf $ka $kl $ks $ke && space
-            putscancode $ki $kn $ki $kt $kr $kd $kequals
-            putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl $kforwardslash
-            putscancode $ki $kn $ki $kt $kr $kd $kperiod $kg $kz && space
-            putscancode $kminus $kminus
-            enter
-            wait
-            echo "Installing, this may take a while."
-            pause ${kickstart_wait:-1500}
-
-            # the automated install will reboot to a login prompt
-            # login (as vboxn), shutdown and detach DVD controller
-            putscancode $kv $kb $ko $kx $kn && enter
-            putscancode $kv $kb $ko $kx $kn && enter
-            pause 10
-
-            echo "stopping vm"
-            putscancode $ks $ku $kd $ko && space
-            putscancode $ks $kh $ku $kt $kd $ko $kw $kn && space
-            putscancode $kminus $kh && space && putscancode $kn $ko $kw
-            enter
-            putscancode $kv $kb $ko $kx $kn && enter
-            pause 60
-
-            # ensure boot from disk
-            echo "detaching dvd medium"
-            detach_iso_image 
-
-            # startvm
-            echo "restarting VM $vm"
-            VBoxManage startvm "$vm"
-            pause 60
-
-        fi
-        if [ "$postinstall" = "yes" ] && [ -f "$postinstall_file_final" ]; then
-
-            cat $postinstall_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-            echo "Launched postinstall listener."
-
-            # login
-            putscancode $kv $kb $ko $kx $kn && enter
-            putscancode $kv $kb $ko $kx $kn && enter
-
-            # fetch postinstall script
-            echo "wget -t 1 http://${kickstart_listen_host}:${kickstart_listen_port} -O postinstall.sh"
-            putscancode $ks $ku $kd $ko && space
-            putscancode $kw $kg $ke $kt && space
-            putscancode $kminus $kt && space && putscancode $k1 && space
-            putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
-            putchars "$kickstart_listen_host:$kickstart_listen_port" && space
-            putscancode $kminus $kO && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-            putscancode $kv $kb $ko $kx $kn && enter
-            wait
-            pause 10
-
-            # run postinstall script
-            echo "sh postinstall.sh"
-            putscancode $ks $ku $kd $ko && space
-            putscancode $ks $kh && space
-            putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
-            enter
-        fi
-
-    ;;
-esac
 

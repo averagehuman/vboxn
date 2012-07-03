@@ -1,0 +1,135 @@
+#!/bin/sh
+
+script="`basename $0`"
+usage () {
+    echo "$script <vm> [-f|--file <filename> -l|--listen <listen_host> -p|--port <listen_port>]"
+    echo ""
+}
+
+vm=""
+postinstall_file=""
+listen_host=$(ifconfig eth0 | grep "inet addr" | awk '{print $2}' | sed "s/addr://")
+listen_port=8586
+
+if [ $# -gt 0 ]; then
+    while [ 1 ];do
+        if [ ! $1 ]; then
+            break
+        elif [ "$1" = "-f" ] || [ "$1" = "--file" ]; then
+            shift
+            postinstall_file="$1"
+        elif [ "$1" = "-l" ] || [ "$1" = "--listen" ]; then
+            shift
+            listen_host="$1"
+        elif [ "$1" = "-p" ] || [ "$1" = "--port" ]; then
+            shift
+            listen_port="$1"
+        else
+            vm="$1"
+        fi
+        shift
+    done
+fi
+
+if [ -z "$vm" ]; then
+    usage
+    exit 1
+fi
+
+if [ -z "$postinstall_file" ]; then
+    # use the default location
+    postinstall_file=`dirname $(VBoxManage showvminfo ubuntu0 | grep "Config file:" | awk '{ print $3 }')`/$vm".postinstall"
+fi
+
+if [ ! -f "$postinstall_file" ]; then
+    echo "postinstall script doesn't exist or is not a file - $postinstall_file"
+    exit 1
+fi
+
+vm_ostype=$(VBoxManage showvminfo $vm | grep "Guest OS" | sed "s/\s//g" | awk -F : '{print $2}')
+postinstall_http="/tmp/vboxn-postinstall-"$(echo $postinstall_file | md5sum | cut -b 1-12)".http"
+length=$(wc -c < $postinstall_file)
+
+echo "HTTP/1.0 200 OK\r" > $postinstall_http
+echo "Content-Type: text/plain\r" >> $postinstall_http
+echo "Content-Length: $length\r" >> $postinstall_http
+echo "\r" >> $postinstall_http
+cat $postinstall_file >> $postinstall_http
+
+# source scancodes constants and functions
+. vboxn-scancodes
+
+detach_iso_image () {
+    # boot from disk
+    VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
+
+    VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium none
+    #deregister the dvd image
+    VBoxManage closemedium dvd $vm_source_iso_file
+}
+
+wget_postinstall_script () {
+    echo "wget -t 1 http://${listen_host}:${listen_port} -O postinstall.sh"
+    putscancode $kw $kg $ke $kt && space
+    putscancode $kminus $kt && space && putscancode $k1 && space
+    putscancode $kh $kt $kt $kp $kcolon $kforwardslash $kforwardslash
+    putchars "$listen_host:$listen_port" && space
+    putscancode $kminus $kO && space
+    putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+    enter
+    wait
+    pause 10
+}
+
+run_postinstall_script () {
+    # run postinstall script
+    echo "sh postinstall.sh"
+    putscancode $ks $kh && space
+    putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
+    enter
+}
+
+# ensure boot from disk
+echo "Detaching dvd medium"
+detach_iso_image 
+
+# startvm
+echo "Restarting VM $vm"
+VBoxManage startvm "$vm"
+pause 60
+
+cat $postinstall_http | nc -l $listen_host $listen_port &
+echo "Launched postinstall listener."
+
+case "$vm_ostype" in
+    ArchLinux*)
+
+        # login
+        echo -n "Login as root"
+        putscancode $kr $ko $ko $kt && enter
+        pause 20
+
+        # bring up network
+        echo -n "dhcpcd eth0"
+        putscancode $kd $kh $kc $kp $kc $kd && space && putscancode $ke $kt $kh $k0
+        enter
+        pause 40
+
+        # fetch and run postinstall script
+        wget_postinstall_script 
+        run_postinstall_script 
+
+    ;;
+    Ubuntu*)
+        # login
+        putscancode $kv $kb $ko $kx $kn && enter
+        putscancode $kv $kb $ko $kx $kn && enter
+
+        # fetch and run postinstall script
+        putscancode $ks $ku $kd $ko && space
+        wget_postinstall_script 
+        putscancode $ks $ku $kd $ko && space
+        run_postinstall_script 
+    ;;
+esac
+

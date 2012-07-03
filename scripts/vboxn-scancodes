@@ -1,0 +1,127 @@
+
+k0='0b 8b';k1='02 82';k2='03 83';k3='04 84';k4='05 85';
+k5='06 86';k6='07 87';k7='08 88';k8='09 89';k9='0a 8a';
+
+ka='1e 9e';kb='30 b0';kc='2e ae';kd='20 a0';ke='12 92';kf='21 a1';kg='22 a2';
+kh='23 a3';ki='17 97';kj='24 a4';kk='25 a5';kl='26 a6';km='32 b2';kn='31 b1';
+ko='18 98';kp='19 99';kq='10 90';kr='13 93';ks='1f 9f';kt='14 94';ku='16 96';
+kv='2f af';kw='11 91';kx='2d ad';ky='15 95';kz='2c ac'
+
+kA='2a 1e aa 9e';kB='2a 30 aa b0';kC='2a 2e aa ae';kD='2a 20 aa a0';
+kE='2a 12 aa';kF='2a 21 aa a1';kG='2a 22 aa a2';kH='2a 23 aa a3'
+kI='2a 17 aa';kJ='2a 24 aa a4';kK='2a 25 aa a5';kL='2a 26 aa a6';kM='2a 32 aa b2';
+kN='2a 31 aa b1';kO='2a 18 aa';kP='2a 19 aa';kQ='2a 10 aa';kR='2a 13 aa'
+kS='2a 1f aa 9f';kT='2a 14 aa';kU='2a 16 aa';kV='2a 2f aa af';kW='2a 11 aa'
+kX='2a 2d aa ad';kY='2a 15 aa';kZ='2a 2c aa ac'
+
+kcomma='33 b3'
+kfullstop='34 b4'
+kperiod="$kfullstop"
+kforwardslash='35 b5'
+kcolon='2a 27 aa a7'
+kpercent='2a 06 aa 86'
+kunderscore='2a 0c aa 8c'
+kampersand='2a 08 aa 88'
+kparenthesesopen='2a 0a aa 8a'
+kparenthesesclose='2a 0b aa 8b'
+ksemicolon='27 a7'
+kdoublequote='2a 28 aa a8'
+ksinglequote='28 a8'
+kbackslash='2b ab'
+kpipe='2a 2b aa 8b'
+ksquarebracketopen='1a 9a'
+ksquarebracketclose='1b 9b'
+klessthan='2a 33 aa b3'
+kgreaterthan='2a 34 aa b4'
+kdollar='2a 05 aa 85'
+kplus='2a 0d aa 8d'
+kminus='0c 8c'
+kequals='0d 8d'
+kasterisk='2a 09 aa 89'
+kquestionmark='2a 35 aa b5'
+kcircumflex='07 87'
+kEnter='1c 9c'
+kBackspace='0e 8e'
+kSpacebar='39 b9'
+kReturn='1c 9c'
+kEsc='01 81'
+kTab='0f 8f'
+
+char2code () {
+    case $1 in
+        0)
+            echo $k0;;
+        1)
+            echo $k1;;
+        2)
+            echo $k2;;
+        3)
+            echo $k3;;
+        4)
+            echo $k4;;
+        5)
+            echo $k5;;
+        6)
+            echo $k6;;
+        7)
+            echo $k7;;
+        8)
+            echo $k8;;
+        9)
+            echo $k9;;
+        .)
+            echo $kperiod;;
+        :)
+            echo $kcolon;;
+        -)
+            echo $kminus;;
+    esac
+}
+
+putscancode () {
+    VBoxManage controlvm "$vm" keyboardputscancode $@
+}
+
+putchars () {
+    s=`echo $1 | sed "s/\(.\).*/\1/"`
+    t=`echo $1 | sed "s/.\(.*\)/\1/"`
+    if [ -n "$s" ]; then
+        code=`char2code $s`
+        if [ -z "$code" ]; then
+            echo "ERROR: couldn't convert $s to scan code"
+            exit 1
+        else
+            putscancode $code
+        fi
+        if [ -n "$t" ]; then
+            putchars $t
+        fi
+    fi
+}
+
+enter () {
+    putscancode $kEnter
+}
+
+space () {
+    putscancode $kSpacebar
+}
+
+esc () {
+    putscancode $kEsc
+}
+
+ekko () {
+    putscancode $ke $kc $kh $ko $kSpacebar $@
+}
+
+pause () {
+    n=$(($1 / 2))
+    while [ $n -gt 0 ]; do
+        echo -n "."
+        sleep 2
+        n=$(($n - 1))
+    done
+    echo ""
+}
+

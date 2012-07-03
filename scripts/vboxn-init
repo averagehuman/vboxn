@@ -532,6 +532,8 @@ fi
 if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
     # source scancodes constants and functions
     . vboxn-scancodes
+    cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
+    pause 20
 
     case "$vm_ostype" in
         ArchLinux*)
@@ -540,9 +542,6 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
         echo "Beginning ArchLinux install."
         enter
         pause 40
-
-        cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-        echo "Launched aif.cfg listener."
 
         # bring up network
         echo "dhcpcd eth0"
@@ -570,9 +569,6 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
 
         ;;
         Ubuntu*)
-
-        cat $kickstart_file_final | nc -l $kickstart_listen_host $kickstart_listen_port &
-        echo "Launched preseed.cfg listener."
 
         echo "Beginning Ubuntu install."
         esc
@@ -620,6 +616,7 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
         putscancode $kminus $kminus
         enter
         wait
+        pause 10
 
         ;;
     esac

@@ -4,8 +4,8 @@ date > /etc/vagrant_box_build_time
 useradd -m -G admin -r vagrant
 passwd -d vagrant
 passwd vagrant<<EOF
-vboxn
-vboxn
+vagrant
+vagrant
 EOF
 # Installing vagrant keys
 mkdir /home/vagrant/.ssh
@@ -13,7 +13,7 @@ chmod 700 /home/vagrant/.ssh
 cd /home/vagrant/.ssh
 wget --no-check-certificate 'https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub' -O authorized_keys
 chmod 600 /home/vagrant/.ssh/authorized_keys
-chown -R vagrant /home/vagrant/.ssh
+chown -R vagrant: /home/vagrant/.ssh
 
 # Install Ruby from source in /opt so that users of Vagrant
 # can install their own Rubies using packages or however.

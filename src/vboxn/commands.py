@@ -77,3 +77,13 @@ class List(Command):
         for line in client.list_objects(parsed_args[0].objtype):
             sys.stdout.write(line+'\n')
 
+class Info(VBoxManageCommandBase):
+    """Show all VM info
+
+    """
+
+    @assert_vm_exists
+    def take_action(self, *parsed_args):
+        for line in client.show_vm_info(self.vm_name):
+            sys.stdout.write(line+'\n')
+

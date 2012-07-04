@@ -41,6 +41,16 @@ except AttributeError:
             raise subprocess.CalledProcessError(retcode, cmd, output=output)
         return output
 
+def get_multiple_info(vm, key):
+    key = key + ':'
+    for line in call(['VBoxManage', 'showvminfo', vm]).splitlines():
+        if line.startswith(key):
+            yield line[len(key):].strip()
+
+def get_info(vm, key):
+    for result in get_multiple_info(vm, key):
+        return result
+
 def list_vms():
     lines = call([
         'VBoxManage', 'list', 'vms',
@@ -68,4 +78,18 @@ def destroy_vm(name):
         'VBoxManage', 'unregistervm', name, '--delete',
     ])
 
+def modify_vm(name, argv):
+    args = ['VBoxManage', 'modifyvm', name] + argv
+    return call(args)
+
+def show_vm_info(name):
+    lines = call([
+        'VBoxManage', 'showvminfo', name
+    ]) or ''
+    return lines.splitlines()
+
+def clone_vm(name, clone_name, adapter=None):
+    yield call([
+        'VBoxManage', 'clonevm', name
+    ])
 

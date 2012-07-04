@@ -38,7 +38,7 @@ fi
 
 if [ -z "$postinstall_file" ]; then
     # use the default location
-    postinstall_file=`dirname $(VBoxManage showvminfo ubuntu0 | grep "Config file:" | awk '{ print $3 }')`/$vm".postinstall"
+    postinstall_file=`dirname $(VBoxManage showvminfo ubuntu0 | grep "Config file:" | awk '{ print $3 }')`"/vboxn.postinstall"
 fi
 
 if [ ! -f "$postinstall_file" ]; then
@@ -60,12 +60,13 @@ cat $postinstall_file >> $postinstall_http
 . vboxn-scancodes
 
 detach_iso_image () {
-    # boot from disk
-    VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
-
-    VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium none
-    #deregister the dvd image
-    VBoxManage closemedium dvd $vm_source_iso_file
+    if [ "$(VBoxManage showvminfo $vm | grep "^Boot Device (1): DVD")" ]; then
+        # boot from disk first
+        VBoxManage modifyvm $vm --boot1 disk --boot2 dvd --boot3 none
+    fi
+    if [ "$(VBoxManage showvminfo $vm | grep "^DVD IDE Controller")" ]; then
+        VBoxManage storageattach "$vm" --storagectl "DVD IDE Controller" --type dvddrive --port 0 --device 0 --medium none
+    fi
 }
 
 wget_postinstall_script () {
@@ -77,8 +78,6 @@ wget_postinstall_script () {
     putscancode $kminus $kO && space
     putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
     enter
-    wait
-    pause 10
 }
 
 run_postinstall_script () {
@@ -87,19 +86,21 @@ run_postinstall_script () {
     putscancode $ks $kh && space
     putscancode $kp $ko $ks $kt $ki $kn $ks $kt $ka $kl $kl $kperiod $ks $kh
     enter
+    pause 5
 }
 
 # ensure boot from disk
-echo "Detaching dvd medium"
+echo "Detaching dvd medium."
 detach_iso_image 
 
 # startvm
-echo "Restarting VM $vm"
+echo "Restarting VM $vm."
 VBoxManage startvm "$vm"
-pause 60
 
-cat $postinstall_http | nc -l $listen_host $listen_port &
 echo "Launched postinstall listener."
+cat $postinstall_http | nc -l $listen_host $listen_port &
+echo "Waiting for connection."
+pause 120
 
 case "$vm_ostype" in
     ArchLinux*)
@@ -124,10 +125,12 @@ case "$vm_ostype" in
         # login
         putscancode $kv $kb $ko $kx $kn && enter
         putscancode $kv $kb $ko $kx $kn && enter
+        pause 10
 
         # fetch and run postinstall script
         putscancode $ks $ku $kd $ko && space
         wget_postinstall_script 
+        putscancode $kv $kb $ko $kx $kn && enter
         putscancode $ks $ku $kd $ko && space
         run_postinstall_script 
     ;;

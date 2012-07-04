@@ -1,4 +1,15 @@
-# postinstall.sh created from Mitchell's official lucid32/64 baseboxes
+
+# configure the hostonly adapter
+cat >> /etc/network/interfaces <<EOF
+
+# hostonly adapter interface
+auto eth1
+iface eth1 inet static
+    address
+    address ${VBOXN_IP:-192.168.44.100}
+    netmask ${VBOXN_NETMASK:-255.255.255.0}
+
+EOF
 
 # Setup sudo to allow no-password sudo for "admin"
 groupadd -r admin

@@ -10,10 +10,12 @@ Overiew
 `vboxn`_ is a Python/Bash library for headlessly creating new VirtualBox machine
 images.  It is intended as a developer utility similar in scope to `veewee`_.
 
-The package includes two user-facing scripts:
+The package includes three user-facing scripts:
 
-+ **vboxn-init** for creating and bootstrapping a new virtual machine
-+ **vboxn** for manipulating existing machines.
++ **vboxn-init** for creating and bootstrapping a new virtual machine (Bash).
++ **vboxn-install** for further provisioning of the machine via default or
+  user-supplied scripts (Bash).
++ **vboxn** for manipulating existing machines (Python).
 
 Installation
 ============
@@ -76,19 +78,13 @@ Usage
         can optionally be defined as a prefix for the postinstall files.
 
       - The kickstart and postinstall files are made available to the
-        guest machine by running "one shot" web servers on the host.
-        The default address and port for these web servers to listen on
-        is '192.168.1.100:8585' and '192.168.1.100:8586'. This can be
-        changed by specifying the 'kickstart_listen_on' and
-        'post_install_listen_on' parameters. Eg.
+        guest machine by running a "one shot" web server on the host.
+        The default address for this web server to listen on is the inet
+        IP address of the host, and the default port is 8585. This can be
+        changed by specifying the 'kickstart_listen_on' parameter:
 
             vboxn-init testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080
 
-      - The default wait time for the kickstart and postinstall scripts is
-        600 seconds (10 minutes), this can be changed by specifying the
-        'kickstart_wait' and 'postinstall_wait' options, eg.
-
-            vboxn-init testbox0 ubuntu auto kickstart_wait=300
 
 
 .. _vboxn: https://github.com/devopsni/vboxn

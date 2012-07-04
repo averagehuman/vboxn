@@ -73,7 +73,7 @@ def start_headless_vm(name, vrde='config'):
         'VBoxHeadless', '--startvm', name, '--vrde=%s' % vrde, '&',
     ]))
 
-def shutdown_vm(name):
+def poweroff_vm(name):
     return call([
         'VBoxManage', 'controlvm', name, 'poweroff',
     ])

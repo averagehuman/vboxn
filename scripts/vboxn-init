@@ -43,19 +43,12 @@ usage () {
     echo "    can optionally be defined as a prefix for the postinstall files."
     echo ""
     echo "  - The kickstart and postinstall files are made available to the"
-    echo "    guest machine by running \"one shot\" web servers on the host."
-    echo "    The default address and port for these web servers to listen on"
-    echo "    is '192.168.1.100:8585' and '192.168.1.100:8586'. This can be"
-    echo "    changed by specifying the 'kickstart_listen_on' and"
-    echo "    'post_install_listen_on' parameters. Eg."
+    echo "    guest machine by running a \"one shot\" web server on the host."
+    echo "    The default address for this web server to listen on is the inet"
+    echo "    IP address of the host, and the default port is 8585. This can be"
+    echo "    changed by specifying the 'kickstart_listen_on' parameter:"
     echo ""
     echo "        $script testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080"
-    echo ""
-    echo "  - The default wait time for the kickstart and postinstall scripts is"
-    echo "    600 seconds (10 minutes), this can be changed by specifying the"
-    echo "    'kickstart_wait' and 'postinstall_wait' options, eg."
-    echo ""
-    echo "        $script testbox0 ubuntu auto kickstart_wait=300"
     echo ""
 }
 
@@ -84,14 +77,12 @@ vm_ssh_key="${HOME:-.}/.ssh/id_rsa.pub"
 
 kickstart="yes"
 kickstart_file=""
-kickstart_listen_on="192.168.1.100:8585"
-kickstart_wait=
+kickstart_listen_on=$(ifconfig eth0 | grep "inet addr" | awk '{print $2}' | sed "s/addr://")":8585"
 
 postinstall="yes"
 postinstall_environment_file=""
 postinstall_configure_root=""
 postintstall_configure_files=""
-postinstall_wait=
 
 ts=`date +%Y%m%d%H%M%S`
 
@@ -574,7 +565,7 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
         esc
         esc
         enter
-        pause 10
+        pause 20
         putscancode $kforwardslash $ki $kn $ks $kt $ka $kl $kl
         putscancode $kforwardslash $kv $km $kl $ki $kn $ku $kz && space
         putscancode $kn $ko $ka $kp $ki $kc && space
@@ -625,9 +616,9 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
     echo "the GUI window until you're sure the installation has finished."
     echo ""
     echo "Once complete, make sure to power off the virtual machine before"
-    echo "running the postinstall script runner (vboxn-postinstall):"
+    echo "running the postinstall script runner (vboxn-install):"
     echo ""
-    echo "    $ vboxn-postinstall $vm"
+    echo "    $ vboxn-install $vm"
     echo ""
 
 fi

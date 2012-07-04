@@ -1,5 +1,5 @@
 
-
+import os
 import subprocess
 
 CalledProcessError = subprocess.CalledProcessError
@@ -69,8 +69,13 @@ def start_vm(name):
     ])
 
 def start_headless_vm(name, vrde='config'):
+    return os.system(' '.join([
+        'VBoxHeadless', '--startvm', name, '--vrde=%s' % vrde, '&',
+    ]))
+
+def shutdown_vm(name):
     return call([
-        'VBoxHeadless', '--startvm', name, '--vrde=%s' % vrde
+        'VBoxManage', 'controlvm', name, 'poweroff',
     ])
 
 def destroy_vm(name):

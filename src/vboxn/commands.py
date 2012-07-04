@@ -39,13 +39,19 @@ class Headless(VBoxManageCommandBase):
 
     @assert_vm_exists
     def take_action(self, *parsed_args):
-        if self.vrde:
+        if parsed_args[0].vrde:
             # enable if the machine has the vrde setting selected
             vrde='config'
         else:
             # else, default is off
             vrde='off'
         client.start_headless_vm(self.vm_name, vrde)
+
+class Shutdown(VBoxManageCommandBase):
+
+    @assert_vm_exists
+    def take_action(self, *parsed_args):
+        client.shutdown_vm(self.vm_name)
 
 class Destroy(VBoxManageCommandBase):
     """Unregister a VirtualBox machine and delete all attached disks.

@@ -20,6 +20,7 @@ if [ ! -f "$nginx_binary" ]; then
     upload_module_version="2.2.0"
     upload_module_name="nginx_upload_module-$upload_module_version"
     upload_module_file="$upload_module_name.tar.gz"
+    # needs latest - see github forks
     #upload_module_url="http://www.grid.net.ru/nginx/download/$upload_module_file"
     upload_module_url="https://github.com/podados/nginx-upload-module/tarball/2.2"
 

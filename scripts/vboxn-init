@@ -616,9 +616,9 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
     echo "the GUI window until you're sure the installation has finished."
     echo ""
     echo "Once complete, make sure to power off the virtual machine before"
-    echo "running the postinstall script runner (vboxn-install):"
+    echo "running the postinstall script runner (vboxn-postinstall):"
     echo ""
-    echo "    $ vboxn-install $vm"
+    echo "    $ vboxn-postinstall $vm"
     echo ""
 
 fi

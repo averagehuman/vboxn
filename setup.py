@@ -23,8 +23,10 @@ setup(
     package_dir = {'': 'src'},
     packages = ['vboxn'],
     scripts=[
-        'scripts/vboxn',
         'scripts/vboxn-init',
+        'scripts/vboxn-postinstall',
+        'scripts/vboxn-scancodes',
+        'scripts/vboxn',
     ]
 )
     

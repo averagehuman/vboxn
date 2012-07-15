@@ -1,6 +1,6 @@
 
-libmc_version="1.0.8"
-libmc_md5="b69eed80407c695c6ddca3b624e037a3"
+libmc_version="1.0.9"
+libmc_md5="d55761ad61b0fb6016fed4d2edb940a4"
 libmc_url="https://launchpad.net/libmemcached/1.0/${libmc_version}/+download/libmemcached-${libmc_version}.tar.gz"
 
 apt-get install libevent-dev cloog-ppl

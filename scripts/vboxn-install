@@ -38,7 +38,7 @@ fi
 
 if [ -z "$postinstall_file" ]; then
     # use the default location
-    postinstall_file=`dirname $(VBoxManage showvminfo ubuntu0 | grep "Config file:" | awk '{ print $3 }')`"/vboxn.postinstall"
+    postinstall_file=`dirname $(VBoxManage showvminfo $vm | grep "Config file:" | awk '{ print $3 }')`"/vboxn.postinstall"
 fi
 
 if [ ! -f "$postinstall_file" ]; then
@@ -99,7 +99,7 @@ VBoxManage startvm "$vm"
 
 echo "Launched postinstall listener."
 cat $postinstall_http | nc -l $listen_host $listen_port &
-echo "Waiting for connection."
+echo "Please wait."
 pause 120
 
 case "$vm_ostype" in
@@ -124,13 +124,16 @@ case "$vm_ostype" in
     Ubuntu*)
         # login
         putscancode $kv $kb $ko $kx $kn && enter
+        pause 5
         putscancode $kv $kb $ko $kx $kn && enter
-        pause 10
+        pause 15
 
         # fetch and run postinstall script
         putscancode $ks $ku $kd $ko && space
         wget_postinstall_script 
+        pause 5
         putscancode $kv $kb $ko $kx $kn && enter
+        pause 5
         putscancode $ks $ku $kd $ko && space
         run_postinstall_script 
     ;;

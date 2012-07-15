@@ -1,5 +1,5 @@
 
-apt-get install ufw
+apt-get -y install ufw
 
 ufw default deny
 ufw allow ssh

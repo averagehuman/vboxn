@@ -1,6 +1,5 @@
 
-# mosh ssh terminal (server)
-apt-get install -y mosh
+apt-get install ufw
 
 ufw default deny
 ufw allow ssh

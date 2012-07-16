@@ -126,14 +126,14 @@ case "$vm_ostype" in
         putscancode $kv $kb $ko $kx $kn && enter
         pause 5
         putscancode $kv $kb $ko $kx $kn && enter
-        pause 15
+        pause 20
 
         # fetch and run postinstall script
         putscancode $ks $ku $kd $ko && space
         wget_postinstall_script 
-        pause 5
+        pause 10
         putscancode $kv $kb $ko $kx $kn && enter
-        pause 5
+        pause 10
         putscancode $ks $ku $kd $ko && space
         run_postinstall_script 
     ;;

@@ -6,4 +6,5 @@ include bootstrap.py
 include buildout.cfg
 recursive-include docs *.rst
 recursive-include share *
+recursive-include scripts *
 

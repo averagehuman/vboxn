@@ -45,10 +45,20 @@ See the `docs on Vagrant base boxes`_ for more info.
 Installation
 ============
 
-Install the development version with pip::
+Install from `pypi`_::
+
+    pip install vboxn
+
+Development
+-----------
+
+Either::
 
     pip install -e git+https://github.com/devopsni/vboxn.git#egg=vboxn
 
+Or::
+
+    python bootstrap.py && ./bin/buildout
 
 Quickstart
 ==========

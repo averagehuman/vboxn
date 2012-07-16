@@ -24,13 +24,13 @@ def assert_vm_exists(method):
     return run
 
 class Start(VBoxManageCommandBase):
-    """Start (power up) an existing VirtualBox machine with GUI frontend"""
+    """Start (power up) an existing VM with GUI frontend"""
     @assert_vm_exists
     def take_action(self, *parsed_args):
         client.start_vm(self.vm_name)
 
 class Headless(VBoxManageCommandBase):
-    """Start (power up) an existing VirtualBox machine with no frontend"""
+    """Start (power up) an existing VM with no frontend"""
 
     def get_parser(self, prog_name):
         parser = super(Headless, self).get_parser(prog_name)
@@ -48,7 +48,7 @@ class Headless(VBoxManageCommandBase):
         client.start_headless_vm(self.vm_name, vrde)
 
 class Stop(VBoxManageCommandBase):
-
+    """Stop a running VM"""
     @assert_vm_exists
     def take_action(self, *parsed_args):
         client.poweroff_vm(self.vm_name)

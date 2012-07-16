@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
-__version__ = '0.1.0'
+__init__ = open('src/vboxn/__init__.py').read().splitlines()
+
+def meta(key):
+    for line in __init__:
+        if line.startswith(key):
+            return line.partition('=')[2].strip().strip("'").strip('"')
+
+__version__ = meta('__version__')
 
 readme = open("README.rst").read()
 changes = open("docs/changes.rst").read()
@@ -14,14 +21,16 @@ setup(
     version=__version__,
     description="Automate the creation and provisioning of VirtualBox machines.",
     author="Gerard Flanagan",
-    author_email="contact@devopsni.com",
+    author_email="gflanagan@devopsni.com",
     long_description=long_description,
-    classifiers=["Development Status :: 1 - Planning",
+    classifiers=["Development Status :: 1 - Pre-Alpha",
                 "Programming Language :: Python",
                 "Programming Language :: Shell",
+                "Environment :: Console",
+                "Operating System :: POSIX",
                 ],
     package_dir = {'': 'src'},
-    packages = ['vboxn'],
+    packages = find_packages(),
     scripts=[
         'scripts/vboxn-init',
         'scripts/vboxn-postinstall',

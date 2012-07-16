@@ -90,7 +90,7 @@ Python package installation, but could also be used standalone without
 requiring either Python or `vboxn`_ itself.
 
 Usage
-~~~~~
+-----
 
 ::
 

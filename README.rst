@@ -4,12 +4,6 @@ vboxn
 
 `vboxn`_ automates the creation of VirtualBox machines.
 
-Status
-======
-
-It works for me, let me know if it works for you. The archlinux installation
-is broken and there are no immediate plans to fix.
-
 Overiew
 =======
 
@@ -41,6 +35,14 @@ installation as follows::
     vagrant box add pangolin32.box
 
 See the `docs on Vagrant base boxes`_ for more info.
+
+Status
+======
+
+The Ubuntu 12.04 guest install works, the archlinux guest install is not
+complete - the default postinstall script fails after a certain point.
+Since Ubuntu is all I need at the moment, there are no immediate plans to
+go beyond that.
 
 Installation
 ============

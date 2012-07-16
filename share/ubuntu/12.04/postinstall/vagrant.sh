@@ -17,6 +17,7 @@ chown -R vagrant: /home/vagrant/.ssh
 
 # Install Ruby from source in /opt so that users of Vagrant
 # can install their own Rubies using packages or however.
+cd /tmp
 wget http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p194.tar.gz
 tar xvzf ruby-1.9.3-p194.tar.gz
 cd ruby-1.9.3-p194
@@ -26,7 +27,7 @@ make install
 cd ..
 rm -rf ruby-1.9.3-p194
 
-# Install RubyGems 1.7.2
+# Install RubyGems 1.8.24
 wget http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
 tar xzf rubygems-1.8.24.tgz
 cd rubygems-1.8.24

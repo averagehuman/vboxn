@@ -114,13 +114,13 @@ Usage
 
     Examples:
 
-        vboxn-init testbox0 archlinux auto
+        vboxn-init testbox0 ubuntu auto
+        vboxn-init testbox0 ubuntu auto kickstart=no
+        vboxn-init testbox0 ubuntu auto kickstart_file=bootstrap.sh
+        vboxn-init testbox0 ubuntu auto postinstall=no
+        vboxn-init testbox0 ubuntu auto vm_basefolder=/srv/vbox
         vboxn-init testbox0 archlinux archlinux-2011.08.19-core-i686.iso
         vboxn-init testbox0 archlinux iso/archlinux-2011.08.19-core-i686.iso conf/vm.properties
-        vboxn-init testbox0 archlinux auto kickstart=no
-        vboxn-init testbox0 archlinux auto kickstart_file=bootstrap.sh
-        vboxn-init testbox0 archlinux auto postinstall=no
-        vboxn-init testbox0 archlinux auto vm_basefolder=/srv/vbox
 
     Notes:
 

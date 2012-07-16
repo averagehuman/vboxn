@@ -23,9 +23,9 @@ setup(
     author="Gerard Flanagan",
     author_email="gflanagan@devopsni.com",
     long_description=long_description,
-    classifiers=["Development Status :: 1 - Pre-Alpha",
+    classifiers=[
                 "Programming Language :: Python",
-                "Programming Language :: Shell",
+                "Programming Language :: Other",
                 "Environment :: Console",
                 "Operating System :: POSIX",
                 ],

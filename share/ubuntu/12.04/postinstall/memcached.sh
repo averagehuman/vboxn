@@ -16,7 +16,7 @@ if [ ! -f libmemcached.tar.gz ]; then
 fi
 
 tar xzf libmemcached.tar.gz
-cd libmemcached*
+cd libmemcached-$libmc_version
 ./configure
 make
 make install

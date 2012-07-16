@@ -7,13 +7,14 @@ vboxn
 Overiew
 =======
 
-`vboxn`_ is a Python/Bash library for headlessly creating new VirtualBox machine
-images.  It is intended as a developer utility similar in scope to `veewee`_.
+`vboxn`_ is a Python/Bash library for creating new VirtualBox machine images
+in a repeatable and unattended fashion. It is intended as a developer utility
+similar in scope to `veewee`_.
 
 The package includes three user-facing scripts:
 
 + **vboxn-init** for creating and bootstrapping a new virtual machine (Bash).
-+ **vboxn-install** for further provisioning of the machine via default or
++ **vboxn-postinstall** for further provisioning of the machine via default or
   user-supplied scripts (Bash).
 + **vboxn** for manipulating existing machines (Python).
 
@@ -25,12 +26,44 @@ Install the development version with pip::
     pip install -e git+https://github.com/devopsni/vboxn.git#egg=vboxn
 
 
+Quickstart
+==========
+
+The following will create and start a new VirtualBox machine in GUI mode,
+and install Ubuntu 12.04 as the guest OS::
+
+    vboxn-init pangolin32 ubuntu auto
+
+If all went well and the OS was successfully installed, shutdown the virtual
+machine (either from the GUI, or with ``sudo shutdown -h now``), and run the
+postinstall script.::
+
+    vboxn-postinstall pangolin32
+
+If that went well, shutdown the machine again and launch it in headless
+(GUI-less) mode::
+
+    vboxn headless pangolin32
+
+Now, wait enough time for the machine to boot and, assuming that you had a
+public RSA key in the usual place (~/.ssh/id_rsa.pub) and it was copied to
+the new machine successfully, you should be able to **ssh** to the running
+instance (by default on address 192.168.44.100 via the hostonly adapter with
+address 192.168.44.1).
+
+The root password is set to **vboxn** and there is an admin user called
+**vboxn** also with this password.
+
+Both the init and postinstall phases will lauch "one-shot" web servers on
+the host using the `netcat`_ utility, if the installation fails then these
+may still be running and should be killed.
+
 vboxn-init
 ===========
 
-**vboxn-init** is a Bash script and, although it will be installed as part
-of the standard Python package installation, it could also be used standalone
-without requiring either Python or `vboxn`_ itself.
+**vboxn-init** is a Bash script which will be installed as part of the standard
+Python package installation, but could also be used standalone without
+requiring either Python or `vboxn`_ itself.
 
 Usage
 ~~~~~
@@ -83,11 +116,12 @@ Usage
         IP address of the host, and the default port is 8585. This can be
         changed by specifying the 'kickstart_listen_on' parameter:
 
-            vboxn-init testbox0 ubuntu auto kickstart_listen_on=10.10.5.1:8080
+            vboxn-init testbox0 ubuntu auto kickstart_listen_on=192.168.1.101:8080
 
 
 
 .. _vboxn: https://github.com/devopsni/vboxn
 .. _veewee: https://github.com/jedi4ever/veewee
+.. _netcat: http://en.wikipedia.org/wiki/Netcat
 
 

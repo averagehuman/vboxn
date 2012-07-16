@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-__init__ = open('src/vboxn/__init__.py').read().splitlines()
+__init__ = open('vboxn/__init__.py').read().splitlines()
 
 def meta(key):
     for line in __init__:

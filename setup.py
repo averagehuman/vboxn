@@ -29,7 +29,6 @@ setup(
                 "Environment :: Console",
                 "Operating System :: POSIX",
                 ],
-    package_dir = {'': 'src'},
     packages = find_packages(),
     scripts=[
         'scripts/vboxn-init',

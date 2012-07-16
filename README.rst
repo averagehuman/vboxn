@@ -161,6 +161,7 @@ Usage
 .. _netcat: http://en.wikipedia.org/wiki/Netcat
 .. _vagrant: http://vagrantup.com
 .. _docs on Vagrant base boxes: http://vagrantup.com/v1/docs/base_boxes.html
+.. _pypi: http://pypi.python.org/pypi
 
 
 

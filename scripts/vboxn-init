@@ -115,7 +115,7 @@ if [ "$vm_source_iso_file" = "auto" ]; then
         fi
         kickstart_file="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/preseed.cfg"
         postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/postinstall"
-        postinstall_configure_files="base.sh python2-libs.sh vagrant.sh memcached.sh etc.sh finally.sh"
+        postinstall_configure_files="base.sh python2-libs.sh vagrant.sh etc.sh finally.sh"
     fi
 fi
 
@@ -616,7 +616,7 @@ if [ "$kickstart" = "yes" ] && [ -f "$kickstart_file_final" ]; then
     echo "the GUI window until you're sure the installation has finished."
     echo ""
     echo "Once complete, make sure to power off the virtual machine before"
-    echo "running the postinstall script runner (vboxn-postinstall):"
+    echo "running the postinstall script:"
     echo ""
     echo "    $ vboxn-postinstall $vm"
     echo ""

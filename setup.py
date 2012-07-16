@@ -36,7 +36,10 @@ setup(
         'scripts/vboxn-postinstall',
         'scripts/vboxn-scancodes',
         'scripts/vboxn',
-    ]
+    ],
+    url="https://github.com/devopsni/vboxn",
+    license="BSD",
+    download_url="http://pypi.python.org/packages/source/v/vboxn/vboxn-%s.tar.gz" % __version__,
 )
     
 

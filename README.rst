@@ -62,6 +62,11 @@ Or::
 
     python bootstrap.py && ./bin/buildout
 
+Requirements
+------------
+
+    + `Cliff`_
+
 Quickstart
 ==========
 
@@ -162,6 +167,7 @@ Usage
 .. _vagrant: http://vagrantup.com
 .. _docs on Vagrant base boxes: http://vagrantup.com/v1/docs/base_boxes.html
 .. _pypi: http://pypi.python.org/pypi
+.. _cliff: http://pypi.python.org/pypi/cliff/
 
 
 

@@ -22,5 +22,3 @@ make
 make install
 ldconfig
 
-apt-get -y install memcached
-

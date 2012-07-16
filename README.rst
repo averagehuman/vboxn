@@ -4,12 +4,18 @@ vboxn
 
 `vboxn`_ automates the creation of VirtualBox machines.
 
+Status
+======
+
+It works for me, let me know if it works for you. The archlinux installation
+is broken and there are no immediate plans to fix.
+
 Overiew
 =======
 
 `vboxn`_ is a Python/Bash library for creating new VirtualBox machine images
 in a repeatable and unattended fashion. It is intended as a developer utility
-similar in scope to `veewee`_.
+similar in scope to `veewee`_, (from which it borrows a few deploy templates).
 
 The package includes three user-facing scripts:
 
@@ -17,6 +23,24 @@ The package includes three user-facing scripts:
 + **vboxn-postinstall** for further provisioning of the machine via default or
   user-supplied scripts (Bash).
 + **vboxn** for manipulating existing machines (Python).
+
+Vagrant
+-------
+
+The default postinstall scripts are intended to configure the virtual machine
+in a way that is compatible with `Vagrant`_. Once the postinstall step has
+completed (and the machine has been shutdown), you ought to be able to
+immediately package the vm as a `Vagrant`_ base box - for example, if the vm
+you created is called **pangolin32** ::
+
+    vagrant package --base pangolin32 --output pangolin32.box
+
+The new box can then be further configured and added to an existing `Vagrant`_
+installation as follows::
+
+    vagrant box add pangolin32.box
+
+See the `docs on Vagrant base boxes`_ for more info.
 
 Installation
 ============
@@ -40,7 +64,7 @@ postinstall script.::
 
     vboxn-postinstall pangolin32
 
-If that went well, shutdown the machine again and launch it in headless
+If that succeeded, shutdown the machine again and launch it in headless
 (GUI-less) mode::
 
     vboxn headless pangolin32
@@ -123,5 +147,8 @@ Usage
 .. _vboxn: https://github.com/devopsni/vboxn
 .. _veewee: https://github.com/jedi4ever/veewee
 .. _netcat: http://en.wikipedia.org/wiki/Netcat
+.. _vagrant: http://vagrantup.com
+.. _docs on Vagrant base boxes: http://vagrantup.com/v1/docs/base_boxes.html
+
 
 

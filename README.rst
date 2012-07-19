@@ -36,6 +36,11 @@ installation as follows::
 
 See the `docs on Vagrant base boxes`_ for more info.
 
+However, note that vagrant will handle network configuration in its own way,
+and this may clash with how the postinstall scripts have left things. In the
+case of the default Ubuntu install, you need to ensure that
+``/etc/network/interfaces`` is consistent.
+
 Status
 ======
 
@@ -95,7 +100,7 @@ address 192.168.44.1).
 The root password is set to **vboxn** and there is an admin user called
 **vboxn** also with this password.
 
-Both the init and postinstall phases will lauch "one-shot" web servers on
+Both the init and postinstall phases will launch "one-shot" web servers on
 the host using the `netcat`_ utility, if the installation fails then these
 may still be running and should be killed.
 

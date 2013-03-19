@@ -61,7 +61,7 @@ Development
 
 Either::
 
-    pip install -e git+https://github.com/devopsni/vboxn.git#egg=vboxn
+    pip install -e git+https://github.com/podados/vboxn.git#egg=vboxn
 
 Or::
 
@@ -166,7 +166,7 @@ Usage
 
 
 
-.. _vboxn: https://github.com/devopsni/vboxn
+.. _vboxn: https://github.com/podados/vboxn
 .. _veewee: https://github.com/jedi4ever/veewee
 .. _netcat: http://en.wikipedia.org/wiki/Netcat
 .. _vagrant: http://vagrantup.com

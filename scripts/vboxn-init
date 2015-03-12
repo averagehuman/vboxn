@@ -104,8 +104,8 @@ fi
 if [ "$vm_source_iso_file" = "auto" ]; then
     if [ "$vm_ostype_label" = "archlinux" ]; then
         vm_source_iso_file="http://ftp.heanet.ie/mirrors/ftp.archlinux.org/iso/2011.08.19/archlinux-2011.08.19-core-i686.iso"
-        kickstart_file="https://raw.github.com/podados/vboxn/master/share/archlinux/latest/aif-generic.cfg"
-        postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/archlinux/latest/postinstall"
+        kickstart_file="https://raw.github.com/averagehuman/vboxn/master/share/archlinux/latest/aif-generic.cfg"
+        postinstall_configure_root="https://raw.github.com/averagehuman/vboxn/master/share/archlinux/latest/postinstall"
         postinstall_configure_files="base.sh vagrant.sh netcfg.sh"
     elif [ "$vm_ostype_label" = "ubuntu" ]; then
         if [ "$vm_pae" = "on" ]; then
@@ -113,8 +113,8 @@ if [ "$vm_source_iso_file" = "auto" ]; then
         else
             vm_source_iso_file="http://archive.ubuntu.com/ubuntu/dists/precise/main/installer-i386/current/images/netboot/non-pae/mini.iso"
         fi
-        kickstart_file="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/preseed.cfg"
-        postinstall_configure_root="https://raw.github.com/podados/vboxn/master/share/ubuntu/12.04/postinstall"
+        kickstart_file="https://raw.github.com/averagehuman/vboxn/master/share/ubuntu/12.04/preseed.cfg"
+        postinstall_configure_root="https://raw.github.com/averagehuman/vboxn/master/share/ubuntu/12.04/postinstall"
         postinstall_configure_files="base.sh python2-libs.sh vagrant.sh etc.sh finally.sh"
     fi
 fi

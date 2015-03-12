@@ -22,12 +22,12 @@ if [ ! -f "$nginx_binary" ]; then
     upload_module_file="$upload_module_name.tar.gz"
     # needs latest - see github forks
     #upload_module_url="http://www.grid.net.ru/nginx/download/$upload_module_file"
-    upload_module_url="https://github.com/podados/nginx-upload-module/tarball/2.2"
+    upload_module_url="https://github.com/averagehuman/nginx-upload-module/tarball/2.2"
 
     if [ ! -d $upload_module_name ]; then
         wget $upload_module_url -O $upload_module_file
         tar xzf $upload_module_file
-        mv podados-nginx-upload-* $upload_module_name
+        mv averagehuman-nginx-upload-* $upload_module_name
         rm $upload_module_file
     fi
 
